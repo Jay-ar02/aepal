@@ -1,73 +1,203 @@
 import 'package:flutter/material.dart';
-import 'package:aepal/buyer/product_details_page.dart'; 
 
-class BuyerPage extends StatelessWidget {
-  const BuyerPage({Key? key}) : super(key: key);
+void main() {
+  runApp(MyApp());
+}
 
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    return MaterialApp(
+      home: BuyerPage(),
+    );
+  }
+}
+
+class BuyerPage extends StatelessWidget {
+ @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 255, 255), 
       appBar: AppBar(
-  title: const Text('Product Lists'),
-  backgroundColor: const Color.fromARGB(255, 255, 255, 255), 
-  leading: IconButton(
-    icon: Icon(Icons.arrow_back),
-    onPressed: () => Navigator.of(context).pop(),
-  ),
-  actions: <Widget>[
-    // Temporarily disabled search icon
-    SizedBox.shrink(),
-  ],
-),
-      body: ListView(
-        children: <Widget>[
+        title: Text('Discover'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.filter_list),
+            onPressed: () {
+              // Handle filter action
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SearchBar(),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(10.0),
             child: Text(
-              'Bidding Items',
-              style: Theme.of(context).textTheme.headline6?.copyWith(color: Colors.black),
+              'BROWSE ALL',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
           ),
-          _buildFacebookPostCard('banana.jpg', 'Banana', 'Current Bid: \$150', 'Place Bid'),
-          // You can add more _buildFacebookPostCard calls here for additional items
+          Expanded(
+            child: GridView.builder(
+              padding: EdgeInsets.all(10),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.65,
+              ),
+              itemCount: 4,
+              itemBuilder: (context, index) {
+                return ProductCard(
+                  sellerName: index % 2 == 0? 'TINDAHAN NI KUTING' : 'ALING JAKI',
+                  imageUrl: index == 0
+                     ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRZk-5pv0ePdI4I1dhrwh2eBEGYeMMipOQxA&s'
+                      : index == 1
+                         ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSD6tAyNupJFSMx15pu6sFxU1VUZivO8Jm3jg&s'
+                          : index == 2
+                            ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTENdraYu3J3Niy7eeN_EzUXmAWS9aFQ4SC_g&s'
+                              : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGJ_kSlbXozilHNrJkajdf49S6VOQfsmaWqg&s',
+                  title: index == 0
+                    ? 'CARROTS'
+                      : index == 1
+                        ? 'RICE'
+                          : index == 2
+                            ? 'KAMOTE'
+                              : 'SAGING',
+                  location: index == 0 || index == 2
+                    ? 'Legazpi, Albay'
+                      : 'Daraga, Albay',
+                  availableKgs: index == 0
+                    ? 50
+                      : index == 1
+                        ? 100
+                          : index == 2
+                            ? 0
+                              : 0,
+                  timeHarvested: index == 0
+                    ? '7:00 A.M'
+                      : index == 1
+                        ? '10:00 A.M'
+                          : 'NONE',
+                  isBiddingSoon: index == 2 || index == 3,
+                );
+              },
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home, color: Color.fromARGB(255, 2, 2, 2)), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications, color: Color.fromARGB(255, 0, 0, 0)), label: 'Notifications'),
-          BottomNavigationBarItem(icon: Icon(Icons.account_circle, color: Color.fromARGB(255, 0, 0, 0)), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+      icon: Icon(Icons.notifications), 
+      label: 'Notifications',
+    ),
+
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ],
-        selectedItemColor: Colors.amber[800], // Highlight selected item
-        unselectedItemColor: Colors.grey, // Distinguish unselected items
-        // Note: Since this is a StatelessWidget, we cannot handle taps on BottomNavigationBar items directly here.
-        // Consider converting to StatefulWidget if you need to handle navigation.
       ),
     );
   }
+}
 
-  Widget _buildFacebookPostCard(String imageName, String title, String subtitle, String action) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-      elevation: 4.0,
-      child: InkWell(
-        onTap: () {}, // Optional: Handle tap on card
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            ClipRRect(
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(10), topRight: Radius.circular(10)), // Apply border radius only to the top corners
-              child: Image.asset(
-                'assets/images/$imageName',
-                fit: BoxFit.cover, // Cover the area with the image
-                height: 150, // Fixed height for the image
-                width: double.infinity, // Full width
+class SearchBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search here',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                filled: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
+          ),
+          SizedBox(width: 10),
+          ElevatedButton(
+            onPressed: () {},
+            child: Text('SEARCH'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ProductCard extends StatelessWidget {
+  final String sellerName;
+  final String imageUrl;
+  final String title;
+  final String location;
+  final int availableKgs;
+  final String timeHarvested;
+  final bool isBiddingSoon;
+
+  ProductCard({
+    required this.sellerName,
+    required this.imageUrl,
+    required this.title,
+    required this.location,
+    required this.availableKgs,
+    required this.timeHarvested,
+    required this.isBiddingSoon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Define a smaller font size style for non-bold text
+    TextStyle smallFontSize = TextStyle(fontSize: 12); // Adjust the size as needed
+
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  sellerName,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Icon(Icons.bookmark, color: Colors.black),
+              ],
+            ),
+          ),
+          ClipRRect(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(1)),
+            child: Image.network(
+              imageUrl,
+              height: 110,
+              width: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(9.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -75,13 +205,41 @@ class BuyerPage extends StatelessWidget {
                     title,
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Text(subtitle),
-                  Text(action, style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(location, style: smallFontSize.copyWith(fontStyle: FontStyle.italic)), 
+                  Text('AVAILABLE KLS.: $availableKgs', style: smallFontSize), 
+                  Text('TIME HARVESTED: $timeHarvested', style: smallFontSize), 
+                  SizedBox(height: 5),
+                  isBiddingSoon
+                    ? Container(
+                            padding: EdgeInsets.symmetric(horizontal: 1, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey,
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'BIDDING SOON',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white),
+                              ),
+                          ),
+                        )
+                        : Center(
+                            child: ElevatedButton(
+                              onPressed: () {},
+                              child: Text('OFFER BID'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(100, 30),
+                                backgroundColor: Colors.green,
+                                textStyle: TextStyle(color: Colors.white, fontSize: 12),
+                              ),
+                            ),
+                          ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

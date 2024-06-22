@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'screens/splash_page.dart';
 import 'login_page.dart';
 import 'signup_page.dart';
+import 'seller/seller_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,12 +14,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // Hide the debug banner
-      title: 'Flutter Auth Demo',
+      debugShowCheckedModeBanner: false,
+      title: 'Aepal',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const HomePage(),
+      home: const SplashPage(),
+      routes: {
+        '/sellerPage': (context) => SellerPage(),
+      },
     );
   }
 }
@@ -33,9 +38,9 @@ class HomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const Spacer(),
-            Image.asset('assets/images/1.png', height: 150), 
+            Image.asset('assets/images/1.png', height: 150),
             const Text(
-              'AE-Pal',
+              'Ae-Pal',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -52,14 +57,15 @@ class HomePage extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) =>  const LoginPage()),
+                          MaterialPageRoute(
+                              builder: (context) => const LoginPage()),
                         );
                       },
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
                         side: const BorderSide(color: Colors.black),
                         shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero, // No rounded corners
+                          borderRadius: BorderRadius.zero,
                         ),
                       ),
                       child: const Text(
@@ -76,14 +82,15 @@ class HomePage extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) =>  const SignUpPage()),
+                          MaterialPageRoute(
+                              builder: (context) => const SignUpPage()),
                         );
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
-                        backgroundColor: Colors.black,
+                        backgroundColor: Color.fromARGB(255, 55, 143, 58), 
                         shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero, // No rounded corners
+                          borderRadius: BorderRadius.zero,
                         ),
                       ),
                       child: const Text(

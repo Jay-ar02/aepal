@@ -15,14 +15,14 @@ class LandingPage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text('Welcome to AE-Pal'),
+            const Text(''),
             const SizedBox(height: 20), // Adds some space between the text and the buttons
             ElevatedButton(
               onPressed: () {
                 // Navigate to Seller Page
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const SellerPage()), // Make sure to define SellerPage widget
+                  MaterialPageRoute(builder: (context) => SellerPage()), // Make sure to define SellerPage widget
                 );
               },
               child: const Text('I am a Seller'),
@@ -31,10 +31,10 @@ class LandingPage extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 // Navigate to Buyer Page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BuyerPage()), // Make sure to define BuyerPage widget
-                );
+               Navigator.push(
+  context,
+  MaterialPageRoute(builder: (context) => BuyerPage()), // Removed 'const' here
+);
               },
               child: const Text('I am a Buyer'),
             ),
