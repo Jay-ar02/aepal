@@ -18,21 +18,38 @@ class ViewBiddersPage extends StatelessWidget {
                 0: FlexColumnWidth(1),
                 1: FlexColumnWidth(1),
                 2: FlexColumnWidth(1),
+                3: FlexColumnWidth(1), // Added for Contact Number
               },
               children: [
                 TableRow(
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Text('Name', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'Name',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Text('Amount', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'Amount',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'Contact Number',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        'Actions',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
                     ),
                   ],
                 ),
@@ -40,26 +57,47 @@ class ViewBiddersPage extends StatelessWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Text('Master'),
+                      child: Text(
+                        'Master',
+                        style: TextStyle(fontSize: 14), // Smaller font size
+                      ),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Text('10'),
+                      child: Text(
+                        '10',
+                        style: TextStyle(fontSize: 14), // Smaller font size
+                      ),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
+                      child: Text(
+                        '09212189555',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                          fontSize: 14, // Smaller font size
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(5.0),
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-  backgroundColor: Colors.green, // background (button) color
-),
+                          backgroundColor: Colors.green, // Background (button) color
+                        ),
                         onPressed: () {
                           // Handle Award button press
                         },
-                        child: Text('Award'),
+                        child: Text(
+                          'Award',
+                          style: TextStyle(color: Colors.white, fontSize: 13), // Smaller font size
+                        ),
                       ),
                     ),
                   ],
                 ),
+                // Add more rows as needed
               ],
             ),
           ],
@@ -67,10 +105,4 @@ class ViewBiddersPage extends StatelessWidget {
       ),
     );
   }
-}
-
-void main() {
-  runApp(MaterialApp(
-    home: ViewBiddersPage(),
-  ));
 }

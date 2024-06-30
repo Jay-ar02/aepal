@@ -3,6 +3,10 @@ import 'screens/splash_page.dart';
 import 'login_page.dart';
 import 'signup_page.dart';
 import 'seller/seller_page.dart';
+import 'seller/seller_notification_page.dart';
+import 'buyer/buyer_notification_page.dart'; 
+import 'seller/view_bidders_page.dart';
+import 'buyer/buyer_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,6 +26,10 @@ class MyApp extends StatelessWidget {
       home: const SplashPage(),
       routes: {
         '/sellerPage': (context) => SellerPage(),
+        '/sellerNotifications': (context) => SellerNotificationPage(),
+        '/viewBidders': (context) => ViewBiddersPage(),
+        '/buyerNotifications': (context) => BuyerNotificationPage(), 
+        '/buyerPage': (context) => BuyerPage(),
       },
     );
   }
@@ -40,7 +48,7 @@ class HomePage extends StatelessWidget {
             const Spacer(),
             Image.asset('assets/images/1.png', height: 150),
             const Text(
-              'Ae-Pal',
+              'AE-PAL',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,

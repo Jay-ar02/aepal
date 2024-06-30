@@ -16,14 +16,16 @@ class SplashPageState extends State<SplashPage> {
     startSplashScreen();
   }
 
+  // Updated the splash screen duration to 3 seconds
   startSplashScreen() async {
-    var duration = const Duration(seconds: 10);
-    return Timer(duration, route);
+    var duration = const Duration(seconds: 3);
+    Timer(duration, route);
   }
 
+  // Navigate to the HomePage
   route() {
     Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (context) => const HomePage())); 
+        context, MaterialPageRoute(builder: (context) => const HomePage()));
   }
 
   @override
@@ -32,18 +34,26 @@ class SplashPageState extends State<SplashPage> {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center, // Ensure horizontal centering
           children: <Widget>[
-            Image.asset('assets/images/1.png', width: 200, height: 200),
+            Image.asset(
+              'assets/images/1.png',
+              width: 200,
+              height: 200,
+              fit: BoxFit.cover, // Ensure image covers the box
+            ),
+            const SizedBox(height: 20),
             const Text(
-              'Ae-Pal',
+              'AE-PAL', // Updated to match the app's title
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 32,
                 fontWeight: FontWeight.bold,
+                color: Colors.black, // Matching the title color
               ),
             ),
             const SizedBox(height: 20),
             const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 55, 143, 58)), 
+              valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(255, 55, 143, 58)), // Color to match the theme
             ),
           ],
         ),

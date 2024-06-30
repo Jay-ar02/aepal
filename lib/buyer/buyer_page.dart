@@ -1,20 +1,36 @@
+import 'package:aepal/buyer/buyer_profile_page.dart';
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
+class BuyerPage extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: BuyerPage(),
-    );
-  }
+  _BuyerPageState createState() => _BuyerPageState();
 }
 
-class BuyerPage extends StatelessWidget {
- @override
+class _BuyerPageState extends State<BuyerPage> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    switch (_selectedIndex) {
+      case 0:
+        break;
+      case 1:
+        Navigator.pushNamed(context, '/buyerNotifications');
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => BuyerProfilePage()),
+        );
+        break;
+      default:
+        break;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -22,9 +38,7 @@ class BuyerPage extends StatelessWidget {
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list),
-            onPressed: () {
-              // Handle filter action
-            },
+            onPressed: () {},
           ),
         ],
       ),
@@ -51,40 +65,16 @@ class BuyerPage extends StatelessWidget {
                 mainAxisSpacing: 10,
                 childAspectRatio: 0.65,
               ),
-              itemCount: 4,
+              itemCount: 2,
               itemBuilder: (context, index) {
                 return ProductCard(
-                  sellerName: index % 2 == 0? 'TINDAHAN NI KUTING' : 'ALING JAKI',
+                  sellerName: index % 2 == 0 ? 'TINDAHAN NI KUTING' : 'ALING JAKI',
                   imageUrl: index == 0
-                     ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRZk-5pv0ePdI4I1dhrwh2eBEGYeMMipOQxA&s'
-                      : index == 1
-                         ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSD6tAyNupJFSMx15pu6sFxU1VUZivO8Jm3jg&s'
-                          : index == 2
-                            ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTENdraYu3J3Niy7eeN_EzUXmAWS9aFQ4SC_g&s'
-                              : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGJ_kSlbXozilHNrJkajdf49S6VOQfsmaWqg&s',
-                  title: index == 0
-                    ? 'CARROTS'
-                      : index == 1
-                        ? 'RICE'
-                          : index == 2
-                            ? 'KAMOTE'
-                              : 'SAGING',
-                  location: index == 0 || index == 2
-                    ? 'Legazpi, Albay'
-                      : 'Daraga, Albay',
-                  availableKgs: index == 0
-                    ? 50
-                      : index == 1
-                        ? 100
-                          : index == 2
-                            ? 0
-                              : 0,
-                  timeHarvested: index == 0
-                    ? '7:00 A.M'
-                      : index == 1
-                        ? '10:00 A.M'
-                          : 'NONE',
-                  isBiddingSoon: index == 2 || index == 3,
+                      ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRZk-5pv0ePdI4I1dhrwh2eBEGYeMMipOQxA&s'
+                      : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSD6tAyNupJFSMx15pu6sFxU1VUZivO8Jm3jg&s',
+                  title: index == 0 ? 'CARROTS' : 'RICE',
+                  location: index == 0 ? 'Legazpi, Albay' : 'Daraga, Albay',
+                  availableKgs: index == 0 ? 50 : 100,
                 );
               },
             ),
@@ -98,15 +88,18 @@ class BuyerPage extends StatelessWidget {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-      icon: Icon(Icons.notifications), 
-      label: 'Notifications',
-    ),
-
+            icon: Icon(Icons.notifications),
+            label: 'Notifications',
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Color.fromARGB(255, 55, 143, 58),
+        unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
       ),
     );
   }
@@ -125,8 +118,14 @@ class SearchBar extends StatelessWidget {
                 hintText: 'Search here',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.black),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.black),
                 ),
                 filled: true,
+                fillColor: Colors.white,
                 contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               ),
             ),
@@ -134,7 +133,10 @@ class SearchBar extends StatelessWidget {
           SizedBox(width: 10),
           ElevatedButton(
             onPressed: () {},
-            child: Text('SEARCH'),
+            child: Text(
+              'SEARCH',
+              style: TextStyle(color: Colors.black),
+            ),
           ),
         ],
       ),
@@ -148,8 +150,6 @@ class ProductCard extends StatelessWidget {
   final String title;
   final String location;
   final int availableKgs;
-  final String timeHarvested;
-  final bool isBiddingSoon;
 
   ProductCard({
     required this.sellerName,
@@ -157,14 +157,11 @@ class ProductCard extends StatelessWidget {
     required this.title,
     required this.location,
     required this.availableKgs,
-    required this.timeHarvested,
-    required this.isBiddingSoon,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Define a smaller font size style for non-bold text
-    TextStyle smallFontSize = TextStyle(fontSize: 12); // Adjust the size as needed
+    TextStyle smallFontSize = TextStyle(fontSize: 12);
 
     return Card(
       shape: RoundedRectangleBorder(
@@ -175,19 +172,13 @@ class ProductCard extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  sellerName,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Icon(Icons.bookmark, color: Colors.black),
-              ],
+            child: Text(
+              sellerName,
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
           ClipRRect(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(1)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
             child: Image.network(
               imageUrl,
               height: 110,
@@ -205,36 +196,44 @@ class ProductCard extends StatelessWidget {
                     title,
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Text(location, style: smallFontSize.copyWith(fontStyle: FontStyle.italic)), 
-                  Text('AVAILABLE KLS.: $availableKgs', style: smallFontSize), 
-                  Text('TIME HARVESTED: $timeHarvested', style: smallFontSize), 
-                  SizedBox(height: 5),
-                  isBiddingSoon
-                    ? Container(
-                            padding: EdgeInsets.symmetric(horizontal: 1, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.grey,
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            child: Center(
-                              child: Text(
-                                'BIDDING SOON',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white),
-                              ),
-                          ),
-                        )
-                        : Center(
-                            child: ElevatedButton(
-                              onPressed: () {},
-                              child: Text('OFFER BID'),
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: Size(100, 30),
-                                backgroundColor: Colors.green,
-                                textStyle: TextStyle(color: Colors.white, fontSize: 12),
-                              ),
-                            ),
-                          ),
+                  Text(location, style: smallFontSize.copyWith(fontStyle: FontStyle.italic)),
+                  Text(
+                    'AVAILABLE KLS.: $availableKgs',
+                    style: smallFontSize,
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        'Time Duration: ',
+                        style: smallFontSize.copyWith(color: Colors.black),
+                      ),
+                      Text(
+                        '1hr',
+                        style: smallFontSize.copyWith(color: Colors.red),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    height: 30,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _showOfferBidModal(context);
+                      },
+                      child: Text(
+                        'OFFER BID',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -243,4 +242,93 @@ class ProductCard extends StatelessWidget {
       ),
     );
   }
+
+ void _showOfferBidModal(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (BuildContext context) {
+      return Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'OFFER HIGHEST BID',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                SizedBox(height: 10),
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Minimum is ',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      TextSpan(
+                        text: '₱5,000',
+                        style: TextStyle(fontSize: 16, color: Colors.red),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
+                Theme(
+                  data: ThemeData(
+                    textSelectionTheme: TextSelectionThemeData(cursorColor: Colors.black),
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: '₱0.00',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[300],
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      'Confirm',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Note: We’ll let you know if you’re the winning bidder.',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
 }

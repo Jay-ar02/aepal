@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'add_product_page.dart';
 import 'seller_notification_page.dart';
-import 'seller_profile_page.dart'; // Import the profile page
 import 'view_bidders_page.dart'; // Import the view bidders page
 
 void main() {
@@ -37,16 +36,19 @@ class _SellerPageState extends State<SellerPage> {
 
     switch (index) {
       case 0:
-        // Handle Home tab
-        // You can add a navigation logic for the Home tab if needed
+        // Navigate to Home tab
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => SellerPage()),
+        );
         break;
       case 1:
-        // Handle Notifications tab
-        Navigator.pushNamed(context, '/sellerNotifications');
+        // Navigate to Notifications tab
+        Navigator.pushReplacementNamed(context, '/sellerNotifications');
         break;
       case 2:
-        // Handle Profile tab
-        Navigator.pushNamed(context, '/sellerProfile');
+        // Navigate to Profile tab
+        Navigator.pushReplacementNamed(context, '/sellerProfile');
         break;
       default:
         break;
@@ -109,7 +111,7 @@ class _SellerPageState extends State<SellerPage> {
                   title: index == 0 ? 'CARROTS' : 'RICE',
                   location: index == 0 ? 'Legazpi, Albay' : 'Daraga, Albay',
                   availableKgs: index == 0 ? 50 : 100,
-                  timeDuration: Duration(hours: 1), // Adding time duration (1 hour)
+                  timeHarvested: index == 0 ? '7:00 A.M' : '10:00 A.M',
                   onPressed: () {
                     Navigator.pushNamed(context, '/viewBidders'); // Updated to use the route
                   },
@@ -187,7 +189,7 @@ class ProductCard extends StatelessWidget {
   final String title;
   final String location;
   final int availableKgs;
-  final Duration timeDuration; // New parameter for time duration
+  final String timeHarvested;
   final VoidCallback onPressed;
 
   ProductCard({
@@ -196,7 +198,7 @@ class ProductCard extends StatelessWidget {
     required this.title,
     required this.location,
     required this.availableKgs,
-    required this.timeDuration,
+    required this.timeHarvested,
     required this.onPressed,
   });
 
@@ -244,21 +246,7 @@ class ProductCard extends StatelessWidget {
                   ),
                   Text(location, style: smallFontSize.copyWith(fontStyle: FontStyle.italic)),
                   Text('AVAILABLE KLS.: $availableKgs', style: smallFontSize),
-                  Row(
-      children: [
-        Text(
-          'Time Duration: ',
-          style: smallFontSize,
-        ),
-        Text(
-          '${timeDuration.inHours} hr',
-          style: smallFontSize.copyWith(
-            color: timeDuration.inHours == 1 ? Colors.red : Colors.black,
-          ),
-        ),
-      ],
-    ),
-                  SizedBox(height: 8), // Adjusted spacing for better layout
+                  Text('TIME HARVESTED: $timeHarvested', style: smallFontSize),
                   ElevatedButton(
                     onPressed: onPressed,
                     child: Text(
@@ -280,6 +268,122 @@ class ProductCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class SellerProfilePage extends StatefulWidget {
+  @override
+  _SellerProfilePageState createState() => _SellerProfilePageState();
+}
+
+class _SellerProfilePageState extends State<SellerProfilePage> {
+  int _selectedIndex = 2;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => SellerPage()),
+        );
+        break;
+      case 1:
+        Navigator.pushReplacementNamed(context, '/sellerNotifications');
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, '/sellerProfile');
+        break;
+      default:
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context); // Navigate back to the previous screen
+          },
+        ),
+        actions: [
+          Icon(Icons.more_vert),
+        ],
+        title: Text('Profile'),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          Container(
+            color: Colors.green,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.grey.shade200,
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.grey.shade400,
+                      size: 40,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tindahan ni kuting', // Replace with actual seller name
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '09636983807', // Replace with actual contact number
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Add other profile content here
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications),
+            label: 'Notifications',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Color.fromARGB(255, 55, 143, 58),
+        unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
       ),
     );
   }
