@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart'; // Import Firebase Core
 import 'screens/splash_page.dart';
 import 'login_page.dart';
 import 'signup_page.dart';
 import 'seller/seller_page.dart';
 import 'seller/seller_notification_page.dart';
-import 'buyer/buyer_notification_page.dart'; 
+import 'buyer/buyer_notification_page.dart';
 import 'seller/view_bidders_page.dart';
 import 'buyer/buyer_page.dart';
+import 'buyer/buyer_profile_page.dart'; // Import BuyerProfilePage
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(); // Ensure Firebase is initialized
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -23,12 +27,14 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const SplashPage(),
+      initialRoute: '/', // Set initial route to '/'
       routes: {
+        '/': (context) => SplashPage(),
+        '/buyerProfile': (context) => BuyerProfilePage(), // Add route for BuyerProfilePage
         '/sellerPage': (context) => SellerPage(),
         '/sellerNotifications': (context) => SellerNotificationPage(),
         '/viewBidders': (context) => ViewBiddersPage(),
-        '/buyerNotifications': (context) => BuyerNotificationPage(), 
+        '/buyerNotifications': (context) => BuyerNotificationPage(),
         '/buyerPage': (context) => BuyerPage(),
       },
     );
@@ -36,7 +42,7 @@ class MyApp extends StatelessWidget {
 }
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -65,8 +71,7 @@ class HomePage extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => const LoginPage()),
+                          MaterialPageRoute(builder: (context) => const LoginPage()),
                         );
                       },
                       style: OutlinedButton.styleFrom(
@@ -90,13 +95,12 @@ class HomePage extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => const SignUpPage()),
+                          MaterialPageRoute(builder: (context) => const SignUpPage()),
                         );
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
-                        backgroundColor: Color.fromARGB(255, 55, 143, 58), 
+                        backgroundColor: Color.fromARGB(255, 55, 143, 58),
                         shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.zero,
                         ),

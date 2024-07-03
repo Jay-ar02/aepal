@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'landing_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'setup_account_page.dart'; // Import the SetupAccountPage
 import 'login_page.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -12,10 +13,11 @@ class SignUpPage extends StatefulWidget {
 
 class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
-  String _username = '';
+  String _email = '';
   String _password = '';
   bool _termsAccepted = false;
   bool _privacyAccepted = false;
+  bool _passwordVisible = false;
 
   OutlineInputBorder _focusedBorder() {
     return OutlineInputBorder(
@@ -29,6 +31,112 @@ class _SignUpPageState extends State<SignUpPage> {
       borderSide: BorderSide(color: Colors.grey),
       borderRadius: BorderRadius.zero,
     );
+  }
+
+  Future<void> _signUp() async {
+    if (_formKey.currentState!.validate() && _termsAccepted && _privacyAccepted) {
+      _formKey.currentState!.save();
+      try {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _email,
+          password: _password,
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => SetupAccountPage(showSuccessNotification: true)), // Navigate to SetupAccountPage with success notification
+        );
+      } on FirebaseAuthException catch (e) {
+        String errorMessage;
+        if (e.code == 'weak-password') {
+          errorMessage = 'Password is too weak.';
+        } else if (e.code == 'email-already-in-use') {
+          errorMessage = 'An account with this email already exists.';
+        } else {
+          errorMessage = 'Error: ${e.message}'; // Simplified error message
+        }
+        // Show the error message in a dialog
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text(
+                'Register Error!',
+                style: TextStyle(color: Colors.red), // Title color
+              ),
+              content: Text(
+                errorMessage,
+                style: const TextStyle(color: Colors.black), // Content color
+              ),
+              actions: [
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red, // Button text color
+                  ),
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } else if (!_termsAccepted) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text(
+              'Terms and Conditions',
+              style: TextStyle(color: Colors.red), // Title color
+            ),
+            content: const Text(
+              'You must accept the terms and conditions to proceed.',
+              style: TextStyle(color: Colors.black), // Content color
+            ),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red, // Button text color
+                ),
+                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    } else if (!_privacyAccepted) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text(
+              'Privacy Policy',
+              style: TextStyle(color: Colors.red), // Title color
+            ),
+            content: const Text(
+              'You must accept the privacy policy to proceed.',
+              style: TextStyle(color: Colors.black), // Content color
+            ),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red, // Button text color
+                ),
+                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -59,10 +167,10 @@ class _SignUpPageState extends State<SignUpPage> {
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min, // This line ensures the form takes minimal vertical space
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Center(
-                    child: const Text(
+                  const Center(
+                    child: Text(
                       'Create your Account',
                       style: TextStyle(
                         fontSize: 32.0,
@@ -73,7 +181,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   const SizedBox(height: 32.0),
                   TextFormField(
                     decoration: InputDecoration(
-                      labelText: 'Username',
+                      labelText: 'Email',
                       labelStyle: const TextStyle(color: Colors.black),
                       border: OutlineInputBorder(),
                       focusedBorder: _focusedBorder(),
@@ -82,12 +190,12 @@ class _SignUpPageState extends State<SignUpPage> {
                     style: const TextStyle(color: Colors.black),
                     validator: (value) {
                       if (value!.isEmpty) {
-                        return 'Please enter your username';
+                        return 'Please enter your email';
                       }
                       return null;
                     },
                     onSaved: (value) {
-                      _username = value!;
+                      _email = value!;
                     },
                   ),
                   const SizedBox(height: 16.0),
@@ -98,8 +206,19 @@ class _SignUpPageState extends State<SignUpPage> {
                       border: OutlineInputBorder(),
                       focusedBorder: _focusedBorder(),
                       enabledBorder: _enabledBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                          color: Colors.black,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _passwordVisible = !_passwordVisible;
+                          });
+                        },
+                      ),
                     ),
-                    obscureText: true,
+                    obscureText: !_passwordVisible,
                     style: const TextStyle(color: Colors.black),
                     validator: (value) {
                       if (value!.isEmpty) {
@@ -133,6 +252,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                 text: 'terms and conditions',
                                 style: const TextStyle(
                                   decoration: TextDecoration.underline,
+                                  decorationColor: Colors.blue, // Set the underline color to blue
                                   color: Colors.blue,
                                 ),
                                 recognizer: TapGestureRecognizer()
@@ -154,7 +274,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                           actions: [
                                             TextButton(
                                               style: TextButton.styleFrom(
-                                                foregroundColor: Colors.red, // Corrected from 'primary' to 'foregroundColor'
+                                                foregroundColor: Colors.red, // Button text color
                                               ),
                                               child: const Text('Close'),
                                               onPressed: () {
@@ -194,6 +314,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                 text: 'privacy policy',
                                 style: const TextStyle(
                                   decoration: TextDecoration.underline,
+                                  decorationColor: Colors.blue, // Set the underline color to blue
                                   color: Colors.blue,
                                 ),
                                 recognizer: TapGestureRecognizer()
@@ -215,7 +336,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                           actions: [
                                             TextButton(
                                               style: TextButton.styleFrom(
-                                                foregroundColor: Colors.red, // Corrected from 'primary' to 'foregroundColor'
+                                                foregroundColor: Colors.red, // Button text color
                                               ),
                                               child: const Text('Close'),
                                               onPressed: () {
@@ -238,59 +359,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.validate() &&
-                            _termsAccepted &&
-                            _privacyAccepted) {
-                          _formKey.currentState!.save();
-                          // Handle sign-up logic here
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const LandingPage()),
-                          );
-                        } else if (!_termsAccepted) {
-                          // Show an alert that terms must be accepted
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('Terms and Conditions'),
-                                content: const Text('You must accept the terms and conditions to proceed.'),
-                                actions: [
-                                  TextButton(
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Colors.red, 
-                                    ),
-                                    child: const Text('OK'),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        } else if (!_privacyAccepted) {
-                          // Show an alert that privacy policy must be accepted
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('Privacy Policy'),
-                                content: const Text('You must accept the privacy policy to proceed.'),
-                                actions: [
-                                  TextButton(
-                                    child: const Text('OK'),
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        }
-                      },
+                      onPressed: _signUp,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color.fromARGB(255, 55, 143, 58),
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -304,22 +373,33 @@ class _SignUpPageState extends State<SignUpPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16.0),
-                  Center(
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginPage()),
-                        );
-                      },
-                      child: const Text(
-                        'Already have an account? Log in',
-                        style: TextStyle(
-                          color: Colors.blue,
+                  const SizedBox(height: 1.0), // Reduced spacing for consistency
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Already have an account?',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginPage()),
+                          );
+                        },
+                        child: RichText(
+                          text: TextSpan(
+                            text: 'Login',
+                            style: const TextStyle(
+                              color: Colors.blue,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Colors.blue, // Set the underline color to blue
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),

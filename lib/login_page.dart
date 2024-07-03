@@ -1,8 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'buyer/buyer_page.dart';
 import 'signup_page.dart';
-import 'landing_page.dart';
-import 'buyer/buyer_page.dart'; // Import the BuyerPage
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,9 +13,10 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  String _username = '';
+  String _email = '';
   String _password = '';
   bool _rememberMe = false;
+  bool _passwordVisible = false;
 
   OutlineInputBorder _inputBorder(Color color) {
     return OutlineInputBorder(
@@ -23,6 +24,59 @@ class _LoginPageState extends State<LoginPage> {
       borderRadius: BorderRadius.zero,
     );
   }
+
+  Future<void> _login() async {
+  if (_formKey.currentState!.validate()) {
+    _formKey.currentState!.save();
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _email,
+        password: _password,
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => BuyerPage()), // Navigate to BuyerPage
+      );
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      if (e.code == 'No user found') {
+        errorMessage = 'No user found for that email.';
+      } else if (e.code == 'Incorrect password.') {
+        errorMessage = 'Incorrect password for this user.';
+      } else {
+        errorMessage = '${e.message}'; // Simplified error message
+      }
+      // Show the error message in a dialog
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text(
+              'Login Error',
+              style: TextStyle(color: Colors.red), // Set title color to red
+            ),
+            content: Text(
+              errorMessage,
+              style: const TextStyle(color: Colors.black), // Set content color to black
+            ),
+            actions: [
+              TextButton(
+                child: const Text(
+                  'OK',
+                  style: TextStyle(color: Colors.red), // Set button text color to red
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +118,7 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 32.0),
                   TextFormField(
                     decoration: InputDecoration(
-                      labelText: 'Username',
+                      labelText: 'Email',
                       labelStyle: const TextStyle(color: Colors.black),
                       border: _inputBorder(Colors.grey),
                       focusedBorder: _inputBorder(Colors.black),
@@ -73,12 +127,12 @@ class _LoginPageState extends State<LoginPage> {
                     style: const TextStyle(color: Colors.black),
                     validator: (value) {
                       if (value!.isEmpty) {
-                        return 'Please enter your username';
+                        return 'Please enter your email';
                       }
                       return null;
                     },
                     onSaved: (value) {
-                      _username = value!;
+                      _email = value!;
                     },
                   ),
                   const SizedBox(height: 16.0),
@@ -89,8 +143,19 @@ class _LoginPageState extends State<LoginPage> {
                       border: _inputBorder(Colors.grey),
                       focusedBorder: _inputBorder(Colors.black),
                       enabledBorder: _inputBorder(Colors.grey),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                          color: Colors.black,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _passwordVisible = !_passwordVisible;
+                          });
+                        },
+                      ),
                     ),
-                    obscureText: true,
+                    obscureText: !_passwordVisible,
                     style: const TextStyle(color: Colors.black),
                     validator: (value) {
                       if (value!.isEmpty) {
@@ -115,7 +180,7 @@ class _LoginPageState extends State<LoginPage> {
                                 _rememberMe = value!;
                               });
                             },
-                            activeColor: Colors.black, // Set the color to black
+                            activeColor: Colors.black,
                           ),
                           const Text('Remember Me'),
                         ],
@@ -137,16 +202,7 @@ class _LoginPageState extends State<LoginPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          _formKey.currentState!.save();
-                          // Handle login logic here
-                          Navigator.pushReplacement(
-                            context,
-                           MaterialPageRoute(builder: (context) => BuyerPage()), // Navigate to BuyerPage
-                          );
-                        }
-                      },
+                      onPressed: _login, // Call the _login method
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color.fromARGB(255, 55, 143, 58),
                         padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -164,18 +220,26 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 16.0),
                   Center(
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const SignUpPage()),
-                        );
-                      },
-                      child: const Text(
-                        'Don\'t have an account? Register',
-                        style: TextStyle(
-                          color: Colors.blue,
-                        ),
+                    child: RichText(
+                      text: TextSpan(
+                        text: 'Don\'t have an account?   ',
+                        style: const TextStyle(color: Colors.black),
+                        children: [
+                          TextSpan(
+                            text: 'Register',
+                            style: const TextStyle(
+                              color: Colors.blue,
+                              decoration: TextDecoration.underline,
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const SignUpPage()),
+                                );
+                              },
+                          ),
+                        ],
                       ),
                     ),
                   ),

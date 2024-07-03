@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "556732933314",
+    "project_id": "aepalnew",
+    "storage_bucket": "aepalnew.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:556732933314:android:1d8dc6cdfa49c1ce0a875b",
+        "android_client_info": {
+          "package_name": "com.example.aepal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAjKIKar5S5tmv5XAKma7eokgyEVcBeYTo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
