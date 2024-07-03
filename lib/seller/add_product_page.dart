@@ -1,6 +1,76 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'seller_page.dart';
 
-class AddProductPage extends StatelessWidget {
+class AddProductPage extends StatefulWidget {
+  @override
+  _AddProductPageState createState() => _AddProductPageState();
+}
+
+class _AddProductPageState extends State<AddProductPage> {
+  final TextEditingController _productNameController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _availableKilosController = TextEditingController();
+  final TextEditingController _minAmountController = TextEditingController();
+  String? _timeDuration;
+  File? _image;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+
+    setState(() {
+      if (pickedFile != null) {
+        _image = File(pickedFile.path);
+      }
+    });
+  }
+
+  Future<String?> _uploadImage(File image) async {
+    try {
+      final storageRef = FirebaseStorage.instance.ref().child('product_images/${DateTime.now().toIso8601String()}');
+      final uploadTask = storageRef.putFile(image);
+      final snapshot = await uploadTask.whenComplete(() => null);
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      print('Error uploading image: $e');
+      return null;
+    }
+  }
+
+  Future<void> _addProduct(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        String? imageUrl;
+        if (_image != null) {
+          imageUrl = await _uploadImage(_image!);
+        }
+
+        await FirebaseFirestore.instance.collection('products').add({
+          'userId': user.uid,
+          'productName': _productNameController.text,
+          'address': _addressController.text,
+          'availableKilos': int.parse(_availableKilosController.text),
+          'minAmount': double.parse(_minAmountController.text),
+          'timeDuration': _timeDuration,
+          'imageUrl': imageUrl,
+        });
+        // Navigate to SellerPage after posting the product
+        Navigator.pushReplacementNamed(context, '/sellerPage');
+      } catch (e) {
+        print('Error adding product: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to add product. Please try again.')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,55 +86,62 @@ class AddProductPage extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Center( // Center the content in the body
+        child: Center(
           child: Column(
-            mainAxisSize: MainAxisSize.min, // Minimize the column's height to fit content
-            crossAxisAlignment: CrossAxisAlignment.center, // Center content horizontally
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Column(
                 children: [
                   Stack(
-                    alignment: Alignment.center, // Center the text within the stack
+                    alignment: Alignment.center,
                     children: [
                       GestureDetector(
-                        onTap: () {
-                          // Handle image upload
-                        },
+                        onTap: _pickImage,
                         child: Container(
                           height: 100,
-                          width: double.infinity, // Match the width of input fields
+                          width: double.infinity,
                           constraints: BoxConstraints(
-                            maxWidth: 400, // Set max width to fit content
+                            maxWidth: 400,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.grey[300],
                             borderRadius: BorderRadius.circular(8),
+                            image: _image != null
+                                ? DecorationImage(
+                                    image: FileImage(_image!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
                           ),
-                          child: Center(
-                            child: Icon(
-                              Icons.image,
-                              size: 50,
-                              color: Colors.grey[700],
+                          child: _image == null
+                              ? Center(
+                                  child: Icon(
+                                    Icons.image,
+                                    size: 50,
+                                    color: Colors.grey[700],
+                                  ),
+                                )
+                              : null,
+                        ),
+                      ),
+                      if (_image == null)
+                        Positioned(
+                          bottom: 8,
+                          child: Text(
+                            'Upload Image',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black.withOpacity(0.7),
                             ),
                           ),
                         ),
-                      ),
-                      Positioned(
-                        bottom: 8, // Position the text at the bottom
-                        child: Text(
-                          'Upload Image',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black.withOpacity(0.7),
-                            // No background color
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                   SizedBox(height: 16),
                   TextField(
+                    controller: _productNameController,
                     style: TextStyle(color: Colors.black),
                     cursorColor: Colors.black,
                     decoration: InputDecoration(
@@ -81,6 +158,7 @@ class AddProductPage extends StatelessWidget {
                   ),
                   SizedBox(height: 16),
                   TextField(
+                    controller: _addressController,
                     style: TextStyle(color: Colors.black),
                     cursorColor: Colors.black,
                     decoration: InputDecoration(
@@ -97,10 +175,29 @@ class AddProductPage extends StatelessWidget {
                   ),
                   SizedBox(height: 16),
                   TextField(
+                    controller: _availableKilosController,
                     style: TextStyle(color: Colors.black),
                     cursorColor: Colors.black,
                     decoration: InputDecoration(
                       labelText: 'Available Kilos',
+                      labelStyle: TextStyle(color: Colors.black),
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  SizedBox(height: 16),
+                  TextField(
+                    controller: _minAmountController,
+                    style: TextStyle(color: Colors.black),
+                    cursorColor: Colors.black,
+                    decoration: InputDecoration(
+                      labelText: 'Minimum Amount to Bid',
                       labelStyle: TextStyle(color: Colors.black),
                       border: OutlineInputBorder(),
                       focusedBorder: OutlineInputBorder(
@@ -134,7 +231,7 @@ class AddProductPage extends StatelessWidget {
                       child: Text(duration),
                     )).toList(),
                     onChanged: (value) {
-                      // Handle change
+                      _timeDuration = value;
                     },
                   ),
                   SizedBox(height: 24),
@@ -142,8 +239,7 @@ class AddProductPage extends StatelessWidget {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        // Navigate back to the SellerPage
-                        Navigator.pushNamed(context, '/sellerPage');
+                        _addProduct(context);
                       },
                       style: ButtonStyle(
                         backgroundColor: MaterialStateProperty.all<Color>(Color.fromARGB(255, 55, 143, 58)),
@@ -178,5 +274,8 @@ class AddProductPage extends StatelessWidget {
 void main() {
   runApp(MaterialApp(
     home: AddProductPage(),
+    routes: {
+      '/sellerPage': (context) => SellerPage(), // Ensure the SellerPage route is defined
+    },
   ));
 }

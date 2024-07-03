@@ -52,7 +52,7 @@ android {
     buildTypes {
         release {
             // Add your own signing config for the release build if needed.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.debug // For release, configure a release signing config here
         }
     }
 }
@@ -62,5 +62,5 @@ flutter {
 }
 
 dependencies {
-    // No additional dependencies here, but ensure all necessary dependencies are in the app-level build.gradle file.
+    // Add your dependencies here if needed
 }

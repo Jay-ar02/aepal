@@ -3,6 +3,8 @@ import 'add_product_page.dart';
 import 'seller_notification_page.dart';
 import 'seller_profile_page.dart'; // Import the profile page
 import 'view_bidders_page.dart'; // Import the view bidders page
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 void main() {
   runApp(MyApp());
@@ -30,6 +32,28 @@ class SellerPage extends StatefulWidget {
 class _SellerPageState extends State<SellerPage> {
   int _selectedIndex = 0;
 
+  Future<String> _getUserName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        return doc['name'] ?? 'Unknown Seller';
+      } catch (e) {
+        print("Error fetching user data: $e");
+        return 'Unknown Seller';
+      }
+    }
+    return 'Unknown Seller';
+  }
+
+  Future<String> _getUserId() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      return user.uid;
+    }
+    return '';
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -51,6 +75,41 @@ class _SellerPageState extends State<SellerPage> {
       default:
         break;
     }
+  }
+
+  Future<void> _deleteProduct(String productId) async {
+    try {
+      await FirebaseFirestore.instance.collection('products').doc(productId).delete();
+    } catch (e) {
+      print("Error deleting product: $e");
+    }
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, String productId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Product'),
+          content: Text('Are you sure you want to delete this product?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Yes'),
+              onPressed: () {
+                _deleteProduct(productId);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -91,27 +150,71 @@ class _SellerPageState extends State<SellerPage> {
             ),
           ),
           Expanded(
-            child: GridView.builder(
-              padding: EdgeInsets.all(10),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 0.65,
-              ),
-              itemCount: 2, // Adjusted to show only two products
-              itemBuilder: (context, index) {
-                return ProductCard(
-                  sellerName: index % 2 == 0 ? 'TINDAHAN NI KUTING' : 'TINDAHAN NI KUTING',
-                  imageUrl: index == 0
-                      ? 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRRZk-5pv0ePdI4I1dhrwh2eBEGYeMMipOQxA&s'
-                      : 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSD6tAyNupJFSMx15pu6sFxU1VUZivO8Jm3jg&s',
-                  title: index == 0 ? 'CARROTS' : 'RICE',
-                  location: index == 0 ? 'Legazpi, Albay' : 'Daraga, Albay',
-                  availableKgs: index == 0 ? 50 : 100,
-                  timeDuration: Duration(hours: 1), // Adding time duration (1 hour)
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/viewBidders'); // Updated to use the route
+            child: FutureBuilder<String>(
+              future: _getUserName(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData) {
+                  return Center(child: Text('No products available.'));
+                }
+                final sellerName = snapshot.data!;
+
+                return FutureBuilder<String>(
+                  future: _getUserId(),
+                  builder: (context, userSnapshot) {
+                    if (userSnapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    if (!userSnapshot.hasData) {
+                      return Center(child: Text('No products available.'));
+                    }
+                    final userId = userSnapshot.data!;
+
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('products')
+                          .where('userId', isEqualTo: userId) // Filter by userId
+                          .snapshots(),
+                      builder: (context, productSnapshot) {
+                        if (productSnapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        }
+                        if (!productSnapshot.hasData) {
+                          return Center(child: Text('No products available.'));
+                        }
+                        var products = productSnapshot.data!.docs;
+                        return GridView.builder(
+                          padding: EdgeInsets.all(10),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            childAspectRatio: 0.65,
+                          ),
+                          itemCount: products.length,
+                          itemBuilder: (context, index) {
+                            var product = products[index];
+                            return ProductCard(
+                              productId: product.id, // Pass the product ID
+                              sellerName: sellerName, // Use fetched seller name
+                              imageUrl: product['imageUrl'] ?? 'https://via.placeholder.com/150',
+                              title: product['productName'],
+                              location: product['address'],
+                              availableKgs: product['availableKilos'],
+                              timeDuration: product['timeDuration'],
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/viewBidders');
+                              },
+                              onLongPress: () {
+                                _showDeleteConfirmationDialog(context, product.id);
+                              },
+                            );
+                          },
+                        );
+                      },
+                    );
                   },
                 );
               },
@@ -155,11 +258,11 @@ class SearchBar extends StatelessWidget {
                 hintText: 'Search here',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.black), // Default border color
+                  borderSide: BorderSide(color: Colors.black),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.black), // Border color when focused
+                  borderSide: BorderSide(color: Colors.black),
                 ),
                 filled: true,
                 fillColor: Colors.white,
@@ -172,7 +275,7 @@ class SearchBar extends StatelessWidget {
             onPressed: () {},
             child: Text(
               'SEARCH',
-              style: TextStyle(color: Colors.black), // Text color set to black
+              style: TextStyle(color: Colors.black),
             ),
           ),
         ],
@@ -182,15 +285,18 @@ class SearchBar extends StatelessWidget {
 }
 
 class ProductCard extends StatelessWidget {
+  final String productId; // Add productId
   final String sellerName;
   final String imageUrl;
   final String title;
   final String location;
   final int availableKgs;
-  final Duration timeDuration; // New parameter for time duration
+  final String timeDuration; // Changed from Duration to String
   final VoidCallback onPressed;
+  final VoidCallback onLongPress; // Add onLongPress
 
   ProductCard({
+    required this.productId,
     required this.sellerName,
     required this.imageUrl,
     required this.title,
@@ -198,88 +304,92 @@ class ProductCard extends StatelessWidget {
     required this.availableKgs,
     required this.timeDuration,
     required this.onPressed,
+    required this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
     TextStyle smallFontSize = TextStyle(fontSize: 12);
 
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  sellerName,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-          ClipRRect(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-            child: Image.network(
-              imageUrl,
-              height: 110,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(9.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onLongPress: onLongPress, // Handle long press
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    title,
+                    sellerName,
                     style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(location, style: smallFontSize.copyWith(fontStyle: FontStyle.italic)),
-                  Text('AVAILABLE KLS.: $availableKgs', style: smallFontSize),
-                  Row(
-      children: [
-        Text(
-          'Time Duration: ',
-          style: smallFontSize,
-        ),
-        Text(
-          '${timeDuration.inHours} hr',
-          style: smallFontSize.copyWith(
-            color: timeDuration.inHours == 1 ? Colors.red : Colors.black,
-          ),
-        ),
-      ],
-    ),
-                  SizedBox(height: 8), // Adjusted spacing for better layout
-                  ElevatedButton(
-                    onPressed: onPressed,
-                    child: Text(
-                      'VIEW BIDDERS',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all<Color>(Colors.green),
-                      minimumSize: MaterialStateProperty.all<Size>(Size(double.infinity, 30)),
-                      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+              child: Image.network(
+                imageUrl,
+                height: 110,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(9.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(location, style: smallFontSize.copyWith(fontStyle: FontStyle.italic)),
+                    Text('AVAILABLE KLS.: $availableKgs', style: smallFontSize),
+                    Row(
+                      children: [
+                        Text(
+                          'Time Duration: ',
+                          style: smallFontSize,
+                        ),
+                        Text(
+                          timeDuration,
+                          style: smallFontSize.copyWith(
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: onPressed,
+                      child: Text(
+                        'VIEW BIDDERS',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all<Color>(Colors.green),
+                        minimumSize: MaterialStateProperty.all<Size>(Size(double.infinity, 30)),
+                        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

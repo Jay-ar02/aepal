@@ -26,57 +26,56 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
-  if (_formKey.currentState!.validate()) {
-    _formKey.currentState!.save();
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _email,
-        password: _password,
-      );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => BuyerPage()), // Navigate to BuyerPage
-      );
-    } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      if (e.code == 'No user found') {
-        errorMessage = 'No user found for that email.';
-      } else if (e.code == 'Incorrect password.') {
-        errorMessage = 'Incorrect password for this user.';
-      } else {
-        errorMessage = '${e.message}'; // Simplified error message
-      }
-      // Show the error message in a dialog
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text(
-              'Login Error',
-              style: TextStyle(color: Colors.red), // Set title color to red
-            ),
-            content: Text(
-              errorMessage,
-              style: const TextStyle(color: Colors.black), // Set content color to black
-            ),
-            actions: [
-              TextButton(
-                child: const Text(
-                  'OK',
-                  style: TextStyle(color: Colors.red), // Set button text color to red
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _email,
+          password: _password,
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => BuyerPage(showSuccessNotification: true)), // Navigate to BuyerPage with success notification
+        );
+      } on FirebaseAuthException catch (e) {
+        String errorMessage;
+        if (e.code == 'user-not-found') {
+          errorMessage = 'No user found for that email.';
+        } else if (e.code == 'wrong-password') {
+          errorMessage = 'Incorrect password for this user.';
+        } else {
+          errorMessage = '${e.message}'; // Simplified error message
+        }
+        // Show the error message in a dialog
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text(
+                'Login Error',
+                style: TextStyle(color: Colors.red), // Set title color to red
               ),
-            ],
-          );
-        },
-      );
+              content: Text(
+                errorMessage,
+                style: const TextStyle(color: Colors.black), // Set content color to black
+              ),
+              actions: [
+                TextButton(
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(color: Colors.red), // Set button text color to red
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
     }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
