@@ -1,107 +1,108 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class ViewBiddersPage extends StatelessWidget {
+  final String productId;
+
+  const ViewBiddersPage({required this.productId});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('BIDDERS', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
+        title: Text('View Bidders'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Table(
-              border: TableBorder.all(),
-              columnWidths: {
-                0: FlexColumnWidth(1),
-                1: FlexColumnWidth(1),
-                2: FlexColumnWidth(1),
-                3: FlexColumnWidth(1), // Added for Contact Number
-              },
-              children: [
-                TableRow(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Name',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Amount',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Contact Number',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Actions',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                      ),
-                    ),
-                  ],
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('products')
+            .doc(productId)
+            .collection('bids')
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text('No bidders for this product.'));
+          }
+
+          var bids = snapshot.data!.docs;
+
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columnSpacing: 16,
+              headingRowHeight: 48,
+              dataRowHeight: 64,
+              columns: <DataColumn>[
+                DataColumn(
+                  label: Text(
+                    'Bidder Name',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
-                TableRow(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'Master',
-                        style: TextStyle(fontSize: 14), // Smaller font size
-                      ),
+                DataColumn(
+                  label: Text(
+                    'Bid Amount',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Contact',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    'Award',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+              rows: bids.map((bid) {
+                var bidData = bid.data() as Map<String, dynamic>;
+                return DataRow(
+                  cells: <DataCell>[
+                    DataCell(
+                      Text(bidData['name']),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        '10',
-                        style: TextStyle(fontSize: 14), // Smaller font size
-                      ),
+                    DataCell(
+                      Text('₱${bidData['amount']}'),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        '09212189555',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          decoration: TextDecoration.underline,
-                          fontSize: 14, // Smaller font size
-                        ),
-                      ),
+                    DataCell(
+                      Text(bidData['contactNumber']),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(5.0),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green, // Background (button) color
-                        ),
+                    DataCell(
+                      ElevatedButton(
                         onPressed: () {
-                          // Handle Award button press
+                          // Handle awarding action
+                          // You can add your logic here for awarding the bid
                         },
                         child: Text(
                           'Award',
-                          style: TextStyle(color: Colors.white, fontSize: 13), // Smaller font size
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all<Color>(Colors.green),
+                          minimumSize: MaterialStateProperty.all<Size>(Size(80, 36)),
+                          shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18.0),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ],
-                ),
-                // Add more rows as needed
-              ],
+                );
+              }).toList(),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -1,3 +1,5 @@
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, prefer_const_constructors
+
 import 'package:flutter/material.dart';
 import 'buyer_page.dart'; // Import BuyerPage to use as Home page
 import 'buyer_profile_page.dart'; // Import BuyerProfilePage
@@ -41,17 +43,17 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pop();
           },
         ),
-        title: Text('Notifications'),
+        title: const Text('Notifications'),
         centerTitle: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
+        child: const Column(
           children: [
             NotificationCard(
               productName: 'Organic Carrots',
@@ -85,7 +87,7 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Color.fromARGB(255, 55, 143, 58),
+        selectedItemColor: const Color.fromARGB(255, 55, 143, 58),
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
       ),
@@ -99,7 +101,7 @@ class NotificationCard extends StatelessWidget {
   final String phoneNumber;
   final String date;
 
-  NotificationCard({
+  const NotificationCard({
     required this.productName,
     required this.message,
     required this.phoneNumber,
@@ -121,18 +123,18 @@ class NotificationCard extends StatelessWidget {
           children: [
             Text(
               productName,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             RichText(
               text: TextSpan(
                 children: [
                   TextSpan(
                     text: message,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.black87,
                     ),
@@ -140,7 +142,7 @@ class NotificationCard extends StatelessWidget {
                   if (phoneNumber.isNotEmpty) 
                     TextSpan(
                       text: phoneNumber,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Colors.blue,
                         decoration: TextDecoration.underline,
@@ -149,10 +151,10 @@ class NotificationCard extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               date,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
                 color: Colors.grey,
               ),

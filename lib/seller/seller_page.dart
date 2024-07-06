@@ -18,7 +18,6 @@ class MyApp extends StatelessWidget {
       routes: {
         '/sellerNotifications': (context) => SellerNotificationPage(),
         '/sellerProfile': (context) => SellerProfilePage(),
-        '/viewBidders': (context) => ViewBiddersPage(), // Add route for ViewBiddersPage
       },
     );
   }
@@ -55,27 +54,29 @@ class _SellerPageState extends State<SellerPage> {
   }
 
   void _onItemTapped(int index) {
+  if (_selectedIndex != index) {
     setState(() {
       _selectedIndex = index;
     });
 
     switch (index) {
       case 0:
-        // Handle Home tab
-        // You can add a navigation logic for the Home tab if needed
+        Navigator.pushReplacementNamed(context, '/sellerPage');
         break;
       case 1:
-        // Handle Notifications tab
-        Navigator.pushNamed(context, '/sellerNotifications');
+        Navigator.pushReplacementNamed(context, '/sellerNotifications');
         break;
       case 2:
-        // Handle Profile tab
-        Navigator.pushNamed(context, '/sellerProfile');
+        // Check if the current route is already SellerProfilePage, if not, navigate to it
+        if (!ModalRoute.of(context)!.settings.name!.contains('/sellerProfile')) {
+          Navigator.pushNamed(context, '/sellerProfile');
+        }
         break;
       default:
         break;
     }
   }
+}
 
   Future<void> _deleteProduct(String productId) async {
     try {
@@ -205,7 +206,11 @@ class _SellerPageState extends State<SellerPage> {
                               availableKgs: product['availableKilos'],
                               timeDuration: product['timeDuration'],
                               onPressed: () {
-                                Navigator.pushNamed(context, '/viewBidders');
+                                Navigator.pushNamed(
+                                  context,
+                                  '/viewBidders',
+                                  arguments: {'productId': product.id}, // Pass productId as arguments
+                                );
                               },
                               onLongPress: () {
                                 _showDeleteConfirmationDialog(context, product.id);

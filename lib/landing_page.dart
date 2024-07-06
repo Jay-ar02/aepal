@@ -1,3 +1,5 @@
+// ignore_for_file: use_super_parameters, prefer_const_constructors
+
 import 'package:flutter/material.dart';
 import 'buyer/buyer_page.dart';
 import 'seller/seller_page.dart';

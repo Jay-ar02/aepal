@@ -1,5 +1,10 @@
+// seller_profile_page.dart
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, prefer_const_constructors
+
+import 'package:aepal/buyer/buyer_page.dart';
+import 'package:aepal/seller/seller_page.dart';
 import 'package:flutter/material.dart';
-import 'seller_page.dart'; // Import SellerPage
+import '../buyer/buyer_page.dart'; // Import BuyerPage
 import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 
@@ -108,45 +113,90 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
           ? Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(16.0),
-                  color: Colors.green,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.grey.shade200,
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.grey.shade400,
-                          size: 80,
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _userData?['name'] ?? 'User Name',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
+                Stack(
+                  children: [
+                    Container(
+                      height: 220, // Increased height to accommodate button placement
+                      color: Colors.green,
+                    ),
+                    Positioned(
+                      top: 16, // Adjusted top position
+                      left: -23, // Adjusted left position
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.only(
+                                topRight: Radius.circular(18.0),
+                                bottomRight: Radius.circular(18.0),
+                              ),
                             ),
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            _userData?['contactNumber'] ?? 'Contact Number',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => BuyerPage()),
+                            );
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Start Buying',
+                                style: TextStyle(color: Colors.black),
+                              ),
+                              Icon(Icons.arrow_forward, size: 16),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 100,
+                      left: 16,
+                      right: 16,
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Colors.grey.shade200,
+                            child: Icon(
+                              Icons.person,
+                              color: Colors.grey.shade400,
+                              size: 80,
                             ),
+                          ),
+                          SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _userData?['name'] ?? 'User Name',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                _userData?['contactNumber'] ?? 'Contact Number',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 Expanded(
                   child: SingleChildScrollView(

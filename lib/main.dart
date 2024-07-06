@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart'; // Import Firebase Core
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/splash_page.dart';
 import 'login_page.dart';
 import 'signup_page.dart';
 import 'seller/seller_page.dart';
 import 'seller/seller_notification_page.dart';
 import 'buyer/buyer_notification_page.dart';
-import 'seller/view_bidders_page.dart';
+import 'seller/view_bidders_page.dart'; // Import ViewBiddersPage
 import 'buyer/buyer_page.dart';
-import 'buyer/buyer_profile_page.dart'; // Import BuyerProfilePage
+import 'buyer/buyer_profile_page.dart';
+import 'seller/seller_profile_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,12 +31,22 @@ class MyApp extends StatelessWidget {
       initialRoute: '/', // Set initial route to '/'
       routes: {
         '/': (context) => SplashPage(),
-        '/buyerProfile': (context) => BuyerProfilePage(), // Add route for BuyerProfilePage
+        '/buyerProfile': (context) => BuyerProfilePage(),
         '/sellerPage': (context) => SellerPage(),
         '/sellerNotifications': (context) => SellerNotificationPage(),
-        '/viewBidders': (context) => ViewBiddersPage(),
         '/buyerNotifications': (context) => BuyerNotificationPage(),
         '/buyerPage': (context) => BuyerPage(),
+        '/sellerProfile': (context) => SellerProfilePage(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/viewBidders') {
+          final args = settings.arguments as Map<String, dynamic>;
+          final productId = args['productId'] as String;
+          return MaterialPageRoute(
+            builder: (context) => ViewBiddersPage(productId: productId),
+          );
+        }
+        return null; // Let `MaterialApp` handle unknown routes
       },
     );
   }

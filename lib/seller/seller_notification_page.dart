@@ -1,5 +1,6 @@
+// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_super_parameters
+
 import 'package:flutter/material.dart';
-import 'seller_page.dart';
 import 'seller_profile_page.dart'; // Import your profile page here
 
 class SellerNotificationPage extends StatefulWidget {
@@ -41,12 +42,12 @@ class _SellerNotificationPageState extends State<SellerNotificationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Notifications'),
+        title: const Text('Notifications'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
-          children: [
+          children: const [
             NotificationCard(
               title: 'Product Posted Successfully',
               message: 'Your product has been posted for bidding successfully. You can now view and manage your product bids.',
@@ -84,7 +85,7 @@ class NotificationCard extends StatelessWidget {
   final String message;
   final String timestamp;
 
-  NotificationCard({
+  const NotificationCard({
     required this.title,
     required this.message,
     required this.timestamp,
@@ -94,7 +95,7 @@ class NotificationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 4,
-      margin: EdgeInsets.symmetric(vertical: 8),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       color: Colors.grey[200], // Set the card color to gray
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -103,23 +104,23 @@ class NotificationCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
                 color: Colors.green,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               message,
-              style: TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Align(
               alignment: Alignment.bottomRight,
               child: Text(
                 timestamp,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   color: Colors.grey,
                 ),
