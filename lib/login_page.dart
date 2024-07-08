@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'buyer/buyer_page.dart';
 import 'signup_page.dart';
+import 'admin/admin_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -31,14 +32,23 @@ class _LoginPageState extends State<LoginPage> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       try {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
+        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _email,
           password: _password,
         );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => BuyerPage(showSuccessNotification: true)), // Navigate to BuyerPage with success notification
-        );
+
+        // Check for admin credentials
+        if (_email == 'admin123@gmail.com' && _password == 'admin123') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AdminPage()), // Navigate to AdminPage
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => BuyerPage(showSuccessNotification: true)), // Navigate to BuyerPage with success notification
+          );
+        }
       } on FirebaseAuthException catch (e) {
         String errorMessage;
         if (e.code == 'user-not-found') {
@@ -49,34 +59,38 @@ class _LoginPageState extends State<LoginPage> {
           errorMessage = '${e.message}'; // Simplified error message
         }
         // Show the error message in a dialog
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text(
-                'Login Error',
-                style: TextStyle(color: Colors.red), // Set title color to red
-              ),
-              content: Text(
-                errorMessage,
-                style: const TextStyle(color: Colors.black), // Set content color to black
-              ),
-              actions: [
-                TextButton(
-                  child: const Text(
-                    'OK',
-                    style: TextStyle(color: Colors.red), // Set button text color to red
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            );
-          },
-        );
+        _showErrorDialog(errorMessage);
       }
     }
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'Login Error',
+            style: TextStyle(color: Colors.red), // Set title color to red
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(color: Colors.black), // Set content color to black
+          ),
+          actions: [
+            TextButton(
+              child: const Text(
+                'OK',
+                style: TextStyle(color: Colors.red), // Set button text color to red
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

@@ -308,7 +308,7 @@ class ProductCard extends StatelessWidget {
                     height: 30,
                     child: ElevatedButton(
                       onPressed: () {
-                        _showOfferBidModal(context, productId); // Pass productId here
+                      _showOfferBidModal(context, productId, minAmount);
                       },
                       child: Text(
                         'OFFER BID',
@@ -331,135 +331,153 @@ class ProductCard extends StatelessWidget {
     );
   }
 
-  void _showOfferBidModal(BuildContext context, String productId) {
-    TextEditingController _bidAmountController = TextEditingController();
+ void _showOfferBidModal(BuildContext context, String productId, double minAmount) {
+  TextEditingController _bidAmountController = TextEditingController();
+  bool _isValidBid = true;
+  String _errorMessage = '';
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'OFFER HIGHEST BID',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                      ),
-                      SizedBox(height: 10),
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'Minimum is ',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                            TextSpan(
-                              text: '₱${minAmount.toStringAsFixed(2)}',
-                              style: TextStyle(fontSize: 16, color: Colors.red),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Theme(
-                        data: ThemeData(
-                          textSelectionTheme: TextSelectionThemeData(cursorColor: Colors.black),
-                        ),
-                        child: TextField(
-                          controller: _bidAmountController,
-                          decoration: InputDecoration(
-                            hintText: '₱0.00',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.black),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.black),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey[300],
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'OFFER HIGHEST BID',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    SizedBox(height: 10),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Minimum is ',
+                            style: TextStyle(fontSize: 16),
                           ),
-                          keyboardType: TextInputType.number,
-                        ),
+                          TextSpan(
+                            text: '₱${minAmount.toStringAsFixed(2)}',
+                            style: TextStyle(fontSize: 16, color: Colors.red),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 20),
-                      Container(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            final bidAmount = double.parse(_bidAmountController.text);
-
-                            final user = FirebaseAuth.instance.currentUser;
-                            if (user != null) {
-                              // Retrieve user data from Firestore
-                              final userData = await FirebaseFirestore.instance
-                                  .collection('users')
-                                  .doc(user.uid)
-                                  .get();
-
-                              // Extract user details
-                              final userName = userData['name'];
-                              final contactNumber = userData['contactNumber'];
-
-                              // Store bid information in Firestore
-                              await FirebaseFirestore.instance
-                                  .collection('products')
-                                  .doc(productId)
-                                  .collection('bids')
-                                  .add({
-                                'userId': user.uid,
-                                'name': userName,
-                                'contactNumber': contactNumber,
-                                'amount': bidAmount,
-                              });
-
-                              // Show a notification or toast here if needed
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Bid placed successfully!'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
+                    ),
+                    SizedBox(height: 20),
+                    Theme(
+                      data: ThemeData(
+                        textSelectionTheme: TextSelectionThemeData(cursorColor: Colors.black),
+                      ),
+                      child: TextField(
+                        controller: _bidAmountController,
+                        decoration: InputDecoration(
+                          hintText: '₱0.00',
+                          errorText: _isValidBid ? null : _errorMessage,
+                          errorStyle: TextStyle(color: Colors.red),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: Colors.black),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: Colors.black),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[300],
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          setState(() {
+                            if (double.parse(value.trim() == '' ? '0' : value.trim()) < minAmount) {
+                              _isValidBid = false;
+                              _errorMessage = 'Bid must be higher than ₱${minAmount.toStringAsFixed(2)}';
+                            } else {
+                              _isValidBid = true;
+                              _errorMessage = '';
                             }
+                          });
+                        },
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isValidBid
+                            ? () async {
+                                final bidAmount = double.parse(_bidAmountController.text);
 
-                            Navigator.pop(context); // Close the modal sheet
-                          },
-                          child: Text(
-                            'Confirm',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            padding: EdgeInsets.symmetric(vertical: 15),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                                final user = FirebaseAuth.instance.currentUser;
+                                if (user != null) {
+                                  // Retrieve user data from Firestore
+                                  final userData = await FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(user.uid)
+                                      .get();
+
+                                  // Extract user details
+                                  final userName = userData['name'];
+                                  final contactNumber = userData['contactNumber'];
+
+                                  // Store bid information in Firestore
+                                  await FirebaseFirestore.instance
+                                      .collection('products')
+                                      .doc(productId)
+                                      .collection('bids')
+                                      .add({
+                                    'userId': user.uid,
+                                    'name': userName,
+                                    'contactNumber': contactNumber,
+                                    'amount': bidAmount,
+                                  });
+
+                                  // Show a notification or toast here if needed
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Bid placed successfully!'),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+
+                                Navigator.pop(context); // Close the modal sheet
+                              }
+                            : null,
+                        child: Text(
+                          'Confirm',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                       ),
-                      SizedBox(height: 10),
-                      Text(
-                        'Note: We’ll let you know if you’re the winning bidder.',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'Note: We’ll let you know if you’re the winning bidder.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
 }
