@@ -4,9 +4,8 @@
 import 'package:aepal/buyer/buyer_page.dart';
 import 'package:aepal/seller/seller_page.dart';
 import 'package:flutter/material.dart';
-import '../buyer/buyer_page.dart'; // Import BuyerPage
-import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SellerProfilePage extends StatefulWidget {
   @override
@@ -15,8 +14,8 @@ class SellerProfilePage extends StatefulWidget {
 
 class _SellerProfilePageState extends State<SellerProfilePage> {
   int _selectedIndex = 2;
-  User? _currentUser; // Store current user information
-  Map<String, dynamic>? _userData; // Store user data from Firestore
+  User? _currentUser;
+  Map<String, dynamic>? _userData;
 
   @override
   void initState() {
@@ -31,8 +30,10 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
 
   Future<void> _fetchUserData() async {
     if (_currentUser != null) {
-      DocumentSnapshot userDoc =
-          await FirebaseFirestore.instance.collection('users').doc(_currentUser!.uid).get();
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_currentUser!.uid)
+          .get();
       if (userDoc.exists) {
         setState(() {
           _userData = userDoc.data() as Map<String, dynamic>?;
@@ -57,7 +58,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
         Navigator.pushReplacementNamed(context, '/sellerNotifications');
         break;
       case 2:
-        Navigator.pushReplacementNamed(context, '/sellerProfile');
+        // Current page, do nothing
         break;
       default:
         break;
@@ -111,142 +112,146 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
       ),
       body: _userData == null
           ? Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Stack(
-                  children: [
-                    Container(
-                      height: 220, // Increased height to accommodate button placement
-                      color: Colors.green,
-                    ),
-                    Positioned(
-                      top: 16, // Adjusted top position
-                      left: -23, // Adjusted left position
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.only(
-                                topRight: Radius.circular(18.0),
-                                bottomRight: Radius.circular(18.0),
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  Stack(
+                    children: [
+                      Container(
+                        height: 220, // Increased height to accommodate button placement
+                        color: Colors.green,
+                      ),
+                      Positioned(
+                        top: 16, // Adjusted top position
+                        left: -23, // Adjusted left position
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.only(
+                                  topRight: Radius.circular(18.0),
+                                  bottomRight: Radius.circular(18.0),
+                                ),
                               ),
                             ),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => BuyerPage()),
-                            );
-                          },
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Start Buying',
-                                style: TextStyle(color: Colors.black),
-                              ),
-                              Icon(Icons.arrow_forward, size: 16),
-                            ],
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => BuyerPage()),
+                              );
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Start Buying',
+                                  style: TextStyle(color: Colors.black),
+                                ),
+                                Icon(Icons.arrow_forward, size: 16),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      top: 100,
-                      left: 16,
-                      right: 16,
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.grey.shade200,
-                            child: Icon(
-                              Icons.person,
-                              color: Colors.grey.shade400,
-                              size: 80,
+                      Positioned(
+                        top: 100,
+                        left: 16,
+                        right: 16,
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 50,
+                              backgroundImage: _userData?['profileImage'] != null
+                                  ? NetworkImage(_userData?['profileImage'])
+                                  : null,
+                              backgroundColor: Colors.grey.shade200,
+                              child: _userData?['profileImage'] == null
+                                  ? Icon(
+                                      Icons.person,
+                                      color: Colors.grey.shade400,
+                                      size: 80,
+                                    )
+                                  : null,
                             ),
-                          ),
-                          SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _userData?['name'] ?? 'User Name',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
+                            SizedBox(width: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${_userData?['firstName'] ?? ''} ${_userData?['lastName'] ?? ''}',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                _userData?['contactNumber'] ?? 'Contact Number',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 16,
+                                SizedBox(height: 8),
+                                Text(
+                                  _userData?['email'] ?? 'Email',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 16,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Text(
-                            'Details',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Details',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ListTile(
-                                leading: Icon(Icons.phone),
-                                title: Text(
-                                  _userData?['contactNumber'] ?? 'Contact Number',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              ),
-                              ListTile(
-                                leading: Icon(Icons.person),
-                                title: Text(
-                                  _userData?['gender'] ?? 'Gender',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              ),
-                              ListTile(
-                                leading: Icon(Icons.location_on),
-                                title: Text(
-                                  _userData?['address'] ?? 'Address',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              ),
-                            ],
+                        SizedBox(height: 8),
+                        ListTile(
+                          leading: Icon(Icons.phone),
+                          title: Text(
+                            _userData?['contactNumber'] ?? 'Contact Number',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.location_on),
+                          title: Text(
+                            _userData?['address'] ?? 'Address',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.cake),
+                          title: Text(
+                            _userData?['birthday'] ?? 'Birthday',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.person),
+                          title: Text(
+                            _userData?['gender'] ?? 'Gender',
+                            style: TextStyle(fontSize: 16),
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[

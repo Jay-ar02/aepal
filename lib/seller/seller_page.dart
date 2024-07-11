@@ -36,7 +36,9 @@ class _SellerPageState extends State<SellerPage> {
     if (user != null) {
       try {
         final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        return doc['name'] ?? 'Unknown Seller';
+        final firstName = doc['firstName'] ?? 'Unknown';
+        final lastName = doc['lastName'] ?? 'Seller';
+        return '$firstName $lastName'; // Combine firstName and lastName
       } catch (e) {
         print("Error fetching user data: $e");
         return 'Unknown Seller';
@@ -54,29 +56,29 @@ class _SellerPageState extends State<SellerPage> {
   }
 
   void _onItemTapped(int index) {
-  if (_selectedIndex != index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (_selectedIndex != index) {
+      setState(() {
+        _selectedIndex = index;
+      });
 
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/sellerPage');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/sellerNotifications');
-        break;
-      case 2:
-        // Check if the current route is already SellerProfilePage, if not, navigate to it
-        if (!ModalRoute.of(context)!.settings.name!.contains('/sellerProfile')) {
-          Navigator.pushNamed(context, '/sellerProfile');
-        }
-        break;
-      default:
-        break;
+      switch (index) {
+        case 0:
+          Navigator.pushReplacementNamed(context, '/sellerPage');
+          break;
+        case 1:
+          Navigator.pushReplacementNamed(context, '/sellerNotifications');
+          break;
+        case 2:
+          // Check if the current route is already SellerProfilePage, if not, navigate to it
+          if (!ModalRoute.of(context)!.settings.name!.contains('/sellerProfile')) {
+            Navigator.pushNamed(context, '/sellerProfile');
+          }
+          break;
+        default:
+          break;
+      }
     }
   }
-}
 
   Future<void> _deleteProduct(String productId) async {
     try {

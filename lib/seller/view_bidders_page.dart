@@ -68,7 +68,7 @@ class ViewBiddersPage extends StatelessWidget {
                 return DataRow(
                   cells: <DataCell>[
                     DataCell(
-                      Text(bidData['name']),
+                      Text('${bidData['firstName']} ${bidData['lastName']}'),
                     ),
                     DataCell(
                       Text('₱${bidData['amount']}'),

@@ -1,11 +1,10 @@
-// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, prefer_const_constructors, prefer_const_literals_to_create_immutables
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import '../buyer/buyer_notification_page.dart';
 import '../seller/seller_page.dart';
-import 'buyer_page.dart'; // Import BuyerPage to use as Home page
+import 'buyer_page.dart';
 
 class BuyerProfilePage extends StatefulWidget {
   @override
@@ -37,7 +36,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
           await _firestore.collection('users').doc(user.uid).get();
       if (userDoc.exists) {
         setState(() {
-          _userData = userDoc.data() as Map<String, dynamic>;
+          _userData = userDoc.data() as Map<String, dynamic>?;
         });
       }
     }
@@ -169,32 +168,39 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                             CircleAvatar(
                               radius: 50,
                               backgroundColor: Colors.grey.shade200,
-                              child: Icon(
-                                Icons.person,
-                                color: Colors.grey.shade400,
-                                size: 80,
-                              ),
+                              backgroundImage: _userData?['profileImage'] != null
+                                  ? NetworkImage(_userData!['profileImage'])
+                                  : null,
+                              child: _userData?['profileImage'] == null
+                                  ? Icon(
+                                      Icons.person,
+                                      color: Colors.grey.shade400,
+                                      size: 80,
+                                    )
+                                  : null,
                             ),
                             SizedBox(width: 16),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _userData?['name'] ?? 'User Name',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${_userData?['firstName'] ?? ''} ${_userData?['lastName'] ?? ''}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  _userData?['email'] ?? 'Email', // Replace with actual email
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 16,
+                                  Text(
+                                    _userData?['email'] ?? 'Email', // Replace with actual email
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 16,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -236,6 +242,13 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                             style: TextStyle(fontSize: 16),
                           ),
                         ),
+                        ListTile(
+                          leading: Icon(Icons.cake),
+                          title: Text(
+                            '${_userData?['birthday'] ?? 'Birthday'}',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -265,4 +278,3 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
     );
   }
 }
-

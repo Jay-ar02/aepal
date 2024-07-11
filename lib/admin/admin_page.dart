@@ -1,46 +1,84 @@
 import 'package:flutter/material.dart';
 
-class AdminPage extends StatelessWidget {
+class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
+
+  @override
+  _AdminPageState createState() => _AdminPageState();
+}
+
+class _AdminPageState extends State<AdminPage> {
+  bool _isManageUsersClicked = false;
+
+  void _onManageUsersPressed() {
+    setState(() {
+      _isManageUsersClicked = true;
+    });
+    // Implement admin-specific functionality here
+  }
+
+  void _onManagePostsPressed() {
+    setState(() {
+      _isManageUsersClicked = false;
+    });
+    // Implement admin-specific functionality here
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Page'),
+        title: const Text('Admin'),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'Welcome, Admin!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Implement admin-specific functionality here
-              },
-              child: const Text('Manage Users'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                // Implement admin-specific functionality here
-              },
-              child: const Text('View Reports'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                // Implement admin-specific functionality here
-              },
-              child: const Text('Settings'),
-            ),
-          ],
-        ),
+      body: Column(
+        children: [
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              SizedBox(
+                width: 180, // Adjusted width to make the buttons wider
+                height: 50, // Set the height to make the buttons rectangular
+                child: ElevatedButton(
+                  onPressed: _onManageUsersPressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isManageUsersClicked ? Colors.green : Colors.white, // Background color
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero, // Rectangle shape
+                    ),
+                  ),
+                  child: Text(
+                    'Manage Users',
+                    style: TextStyle(color: _isManageUsersClicked ? Colors.white : Colors.black),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10), // Space between the buttons
+              SizedBox(
+                width: 200, // Adjusted width to make the buttons wider
+                height: 50, // Set the height to make the buttons rectangular
+                child: ElevatedButton(
+                  onPressed: _onManagePostsPressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: !_isManageUsersClicked ? Colors.green : Colors.white, // Background color
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero, // Rectangle shape
+                    ),
+                  ),
+                  child: Text(
+                    'Manage Posts',
+                    style: TextStyle(color: !_isManageUsersClicked ? Colors.white : Colors.black),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+}
+
+void main() {
+  runApp(const MaterialApp(home: AdminPage()));
 }

@@ -3,6 +3,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 import 'setup_account_page.dart'; // Import the SetupAccountPage
 import 'login_page.dart';
 
@@ -39,10 +40,16 @@ class _SignUpPageState extends State<SignUpPage> {
     if (_formKey.currentState!.validate() && _termsAccepted && _privacyAccepted) {
       _formKey.currentState!.save();
       try {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _email,
           password: _password,
         );
+
+        // Save the email to Firestore
+        await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+          'email': _email,
+        });
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => SetupAccountPage(showSuccessNotification: true)), // Navigate to SetupAccountPage with success notification
