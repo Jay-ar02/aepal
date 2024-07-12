@@ -1,12 +1,9 @@
-// ignore_for_file: library_private_types_in_public_api, avoid_print, prefer_const_constructors, use_key_in_widget_constructors, sort_child_properties_last, sized_box_for_whitespace
-
+import 'package:badges/badges.dart' as badges;
 import 'package:aepal/buyer/buyer_profile_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-
-import '../seller/view_bidders_page.dart';
 
 class BuyerPage extends StatefulWidget {
   final bool showSuccessNotification;
@@ -19,11 +16,13 @@ class BuyerPage extends StatefulWidget {
 
 class _BuyerPageState extends State<BuyerPage> {
   int _selectedIndex = 0;
+  int _unreadNotifications = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchUserName();
+    _fetchNotifications(); // Fetch notifications on init
     if (widget.showSuccessNotification) {
       Future.delayed(Duration.zero, () {
         Fluttertoast.showToast(
@@ -41,8 +40,7 @@ class _BuyerPageState extends State<BuyerPage> {
       try {
         DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         if (userDoc.exists) {
-          setState(() {
-          });
+          setState(() {});
         }
       } catch (e) {
         print("Error fetching user data: $e");
@@ -50,10 +48,62 @@ class _BuyerPageState extends State<BuyerPage> {
     }
   }
 
-  void _onItemTapped(int index) {
+  Future<void> _fetchNotifications() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final notifications = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('notifications')
+          .where('read', isEqualTo: false)
+          .get();
+
+      setState(() {
+        _unreadNotifications = notifications.docs.length;
+      });
+    }
+  }
+
+  Future<String> _fetchSellerName(String sellerId) async {
+    if (sellerId.isEmpty) return 'Unknown';
+
+    try {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(sellerId).get();
+      if (userDoc.exists) {
+        String firstName = userDoc['firstName'] ?? 'Unknown';
+        String lastName = userDoc['lastName'] ?? '';
+        return '$firstName $lastName';
+      }
+    } catch (e) {
+      print("Error fetching seller data: $e");
+    }
+    return 'Unknown';
+  }
+
+  void _onItemTapped(int index) async {
+    if (index == 1) {
+      // Navigating to notifications, mark them as read
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection('notifications')
+          .where('read', isEqualTo: false)
+          .get()
+          .then((snapshot) {
+        for (DocumentSnapshot doc in snapshot.docs) {
+          doc.reference.update({'read': true});
+        }
+      });
+
+      setState(() {
+        _unreadNotifications = 0; // Reset unread notifications count
+      });
+    }
+
     setState(() {
       _selectedIndex = index;
     });
+
     switch (_selectedIndex) {
       case 0:
         break;
@@ -69,20 +119,6 @@ class _BuyerPageState extends State<BuyerPage> {
       default:
         break;
     }
-  }
-
-  Future<String> _fetchSellerName(String sellerId) async {
-    try {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(sellerId).get();
-      if (userDoc.exists) {
-        String firstName = userDoc['firstName'] ?? 'Unknown';
-        String lastName = userDoc['lastName'] ?? '';
-        return '$firstName $lastName';
-      }
-    } catch (e) {
-      print("Error fetching seller data: $e");
-    }
-    return 'Unknown';
   }
 
   @override
@@ -134,9 +170,10 @@ class _BuyerPageState extends State<BuyerPage> {
                   itemBuilder: (context, index) {
                     var product = products[index];
                     var productId = product.id; // Adjust according to your data structure
+                    var userId = product['userId'] ?? ''; // Ensure userId is fetched
 
                     return FutureBuilder<String>(
-                      future: _fetchSellerName(product['userId']),
+                      future: _fetchSellerName(userId),
                       builder: (context, sellerSnapshot) {
                         if (sellerSnapshot.connectionState == ConnectionState.waiting) {
                           return Center(child: CircularProgressIndicator());
@@ -150,7 +187,7 @@ class _BuyerPageState extends State<BuyerPage> {
                           minAmount: product['minAmount'],
                           timeDuration: product['timeDuration'],
                           productId: productId,
-                          ownerId: product['userId'],
+                          ownerId: userId,
                         );
                       },
                     );
@@ -162,13 +199,20 @@ class _BuyerPageState extends State<BuyerPage> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+        items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
+           icon: badges.Badge(
+  showBadge: _unreadNotifications > 0,
+  badgeContent: Text(
+    _unreadNotifications.toString(),
+    style: TextStyle(color: Colors.white),
+  ),
+  child: Icon(Icons.notifications),
+),
             label: 'Notifications',
           ),
           BottomNavigationBarItem(
@@ -381,7 +425,7 @@ class ProductCard extends StatelessWidget {
   }
 }
 
- void _showOfferBidModal(BuildContext context, String productId, double minAmount) {
+void _showOfferBidModal(BuildContext context, String productId, double minAmount) {
   TextEditingController _bidAmountController = TextEditingController();
   bool _isValidBid = true;
   String _errorMessage = '';
@@ -489,6 +533,19 @@ class ProductCard extends StatelessWidget {
                                     'lastName': lastName,
                                     'contactNumber': contactNumber,
                                     'amount': bidAmount,
+                                  });
+
+                                  // Add a notification for the bid
+                                  await FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(user.uid)
+                                      .collection('notifications')
+                                      .add({
+                                    'productId': productId,
+                                    'productName': 'Product Name', // Replace with actual product name
+                                    'message': 'Bidding successful, We will notify you if you are the winner.',
+                                    'timestamp': FieldValue.serverTimestamp(),
+                                    'read': false,
                                   });
 
                                   // Show a notification or toast here if needed

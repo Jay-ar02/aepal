@@ -1,10 +1,10 @@
+import 'package:badges/badges.dart' as badge;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import '../buyer/buyer_notification_page.dart';
-import '../seller/seller_page.dart';
+import 'buyer_notification_page.dart';
 import 'buyer_page.dart';
+import '../seller/seller_page.dart';
 
 class BuyerProfilePage extends StatefulWidget {
   @override
@@ -13,6 +13,7 @@ class BuyerProfilePage extends StatefulWidget {
 
 class _BuyerProfilePageState extends State<BuyerProfilePage> {
   int _selectedIndex = 2; // Set default index to Profile
+  int _unreadNotifications = 0;
 
   // Firebase Auth instance
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -27,6 +28,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
   void initState() {
     super.initState();
     _fetchUserData();
+    _fetchNotifications(); // Fetch notifications on init
   }
 
   Future<void> _fetchUserData() async {
@@ -42,7 +44,42 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
     }
   }
 
-  void _onItemTapped(int index) {
+  Future<void> _fetchNotifications() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final notifications = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('notifications')
+          .where('read', isEqualTo: false)
+          .get();
+
+      setState(() {
+        _unreadNotifications = notifications.docs.length;
+      });
+    }
+  }
+
+  void _onItemTapped(int index) async {
+    if (index == 1) {
+      // Navigating to notifications, mark them as read
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection('notifications')
+          .where('read', isEqualTo: false)
+          .get()
+          .then((snapshot) {
+        for (DocumentSnapshot doc in snapshot.docs) {
+          doc.reference.update({'read': true});
+        }
+      });
+
+      setState(() {
+        _unreadNotifications = 0; // Reset unread notifications count
+      });
+    }
+
     setState(() {
       _selectedIndex = index;
     });
@@ -256,13 +293,20 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
               ),
             ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+        items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
+            icon: badge.Badge(
+  showBadge: _unreadNotifications > 0,
+  badgeContent: Text(
+    _unreadNotifications.toString(),
+    style: TextStyle(color: Colors.white),
+  ),
+  child: Icon(Icons.notifications),
+),
             label: 'Notifications',
           ),
           BottomNavigationBarItem(

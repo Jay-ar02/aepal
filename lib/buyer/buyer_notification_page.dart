@@ -1,5 +1,5 @@
-// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, prefer_const_constructors
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'buyer_page.dart'; // Import BuyerPage to use as Home page
 import 'buyer_profile_page.dart'; // Import BuyerProfilePage
@@ -10,7 +10,84 @@ class BuyerNotificationPage extends StatefulWidget {
 }
 
 class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
-  int _selectedIndex = 1; // Set default index to Notifications
+  int _selectedIndex = 1; // Initially set to 1 (Notifications tab)
+  List<DocumentSnapshot> _notifications = [];
+  bool _loading = true;
+  int _unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNotifications();
+  }
+
+  void _fetchNotifications() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final notifications = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('notifications')
+          .orderBy('timestamp', descending: true)
+          .get();
+
+      setState(() {
+        _notifications = notifications.docs;
+        _unreadCount =
+            notifications.docs.where((doc) => doc['read'] == false).length;
+        _loading = false;
+
+        // Mark all notifications as read when loaded
+        for (var doc in notifications.docs) {
+          if (doc['read'] == false) {
+            doc.reference.update({'read': true});
+          }
+        }
+      });
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchProductAndOwner(String productId, String message, Timestamp timestamp) async {
+    try {
+      final productDoc = await FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId)
+          .get();
+
+      if (productDoc.exists) {
+        final productData = productDoc.data();
+        return {
+          'productId': productId,
+          'productName': productData?['productName'] ?? '',
+          'message': message.replaceAll('firstName', 'we').replaceAll('lastName', 'we'), // Replace first and last name with "we"
+          'timestamp': timestamp,
+          'read': false,
+        };
+      }
+    } catch (e) {
+      print('Error fetching product data: $e');
+    }
+    return {
+      'productId': '',
+      'productName': '',
+      'message': '',
+      'timestamp': timestamp,
+      'read': false,
+    };
+  }
+
+  void _deleteNotification(DocumentSnapshot notification) async {
+    try {
+      await notification.reference.delete();
+      setState(() {
+        _notifications.remove(notification);
+      });
+      // Optionally update unread count or other UI logic
+    } catch (e) {
+      print('Error deleting notification: $e');
+      // Handle error as needed
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -23,9 +100,6 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
           context,
           MaterialPageRoute(builder: (context) => BuyerPage()),
         );
-        break;
-      case 1:
-        // Current page, do nothing
         break;
       case 2:
         Navigator.pushReplacement(
@@ -51,28 +125,77 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
         title: const Text('Notifications'),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: const Column(
-          children: [
-            NotificationCard(
-              productName: 'Organic Carrots',
-              message: 'Congratulations! You have won the bid for Organic Carrots. Please contact the farmer at this number ',
-              phoneNumber: '09212189555',
-              date: 'June 30, 2024',
+      body: _loading
+          ? Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: _notifications.isEmpty
+                  ? Center(child: Text('No notifications available'))
+                  : ListView.builder(
+                      itemCount: _notifications.length,
+                      itemBuilder: (context, index) {
+                        final notification = _notifications[index];
+                        final productId = notification['productId'];
+                        final timestamp = notification['timestamp'];
+
+                        return Dismissible(
+                          key: Key(notification.id),
+                          direction: DismissDirection.startToEnd,
+                          background: Container(
+                            color: Colors.red,
+                            alignment: Alignment.centerLeft,
+                            padding: EdgeInsets.symmetric(horizontal: 20.0),
+                            child: Icon(Icons.delete, color: Colors.white),
+                          ),
+                          confirmDismiss: (direction) async {
+                            return await showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: Text('Confirm'),
+                                  content: Text('Are you sure you want to delete this notification?'),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(false),
+                                      child: Text('CANCEL'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(true),
+                                      child: Text('DELETE'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                          onDismissed: (direction) {
+                            _deleteNotification(notification);
+                          },
+                          child: FutureBuilder<Map<String, dynamic>>(
+                            future: _fetchProductAndOwner(productId, notification['message'], timestamp),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return Center(child: CircularProgressIndicator());
+                              } else if (snapshot.hasError) {
+                                return Center(child: Text('Error fetching product data'));
+                              } else if (!snapshot.hasData || snapshot.data == null) {
+                                return Center(child: Text('Product data not found'));
+                              }
+
+                              final data = snapshot.data!;
+                              return NotificationCard(
+                                productName: data['productName'],
+                                message: data['message'],
+                                timestamp: data['timestamp'],
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
             ),
-            SizedBox(height: 16),
-            NotificationCard(
-              productName: 'Premium Rice',
-              message: 'You were not selected for the bid on Premium Rice. Better luck next time!',
-              phoneNumber: '',
-              date: 'June 29, 2024',
-            ),
-          ],
-        ),
-      ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+        items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
@@ -98,20 +221,23 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
 class NotificationCard extends StatelessWidget {
   final String productName;
   final String message;
-  final String phoneNumber;
-  final String date;
+  final Timestamp timestamp;
 
   const NotificationCard({
     required this.productName,
     required this.message,
-    required this.phoneNumber,
-    required this.date,
+    required this.timestamp,
   });
 
   @override
   Widget build(BuildContext context) {
+    String formattedDate = '';
+    if (timestamp != null) {
+      formattedDate = timestamp.toDate().toString();
+    }
+
     return Card(
-      color: Colors.grey[200], // Set the color of the card to light gray
+      color: Colors.grey[200],
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
@@ -123,41 +249,20 @@ class NotificationCard extends StatelessWidget {
           children: [
             Text(
               productName,
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 8),
-            RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: message,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  if (phoneNumber.isNotEmpty) 
-                    TextSpan(
-                      text: phoneNumber,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.blue,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
-              date,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+              message,
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Date: $formattedDate',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],
         ),
