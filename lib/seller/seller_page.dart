@@ -321,6 +321,7 @@ class ProductCard extends StatelessWidget {
     return GestureDetector(
       onLongPress: onLongPress, // Handle long press
       child: Card(
+        color: Colors.grey[100], // Set the card color to light gray
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
         ),

@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'buyer_page.dart'; // Import BuyerPage to use as Home page
 import 'buyer_profile_page.dart'; // Import BuyerProfilePage
+import 'package:badges/badges.dart' as badges;
 
 class BuyerNotificationPage extends StatefulWidget {
   @override
@@ -56,13 +57,24 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
 
       if (productDoc.exists) {
         final productData = productDoc.data();
-        return {
-          'productId': productId,
-          'productName': productData?['productName'] ?? '',
-          'message': message.replaceAll('firstName', 'we').replaceAll('lastName', 'we'), // Replace first and last name with "we"
-          'timestamp': timestamp,
-          'read': false,
-        };
+        final ownerDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(productData?['userId'])
+            .get();
+
+        if (ownerDoc.exists) {
+          final ownerData = ownerDoc.data();
+          return {
+            'productId': productId,
+            'productName': productData?['productName'] ?? '',
+            'message': message
+              .replaceAll('contactNumber', ownerData?['contactNumber'] ?? 'Unknown')
+              .replaceAll('firstName', ownerData?['firstName'] ?? 'Unknown')
+              .replaceAll('lastName', ownerData?['lastName'] ?? 'Unknown'),
+            'timestamp': timestamp,
+            'read': false,
+          };
+        }
       }
     } catch (e) {
       print('Error fetching product data: $e');
@@ -82,10 +94,8 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
       setState(() {
         _notifications.remove(notification);
       });
-      // Optionally update unread count or other UI logic
     } catch (e) {
       print('Error deleting notification: $e');
-      // Handle error as needed
     }
   }
 
@@ -124,6 +134,17 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
         ),
         title: const Text('Notifications'),
         centerTitle: true,
+        actions: <Widget>[
+          badges.Badge(
+            badgeContent: Text(
+              _unreadCount.toString(),
+              style: const TextStyle(color: Colors.white),
+            ),
+            badgeStyle: badges.BadgeStyle(
+              // backgroundColor: Colors.red,
+            ),
+          ),
+        ],
       ),
       body: _loading
           ? Center(child: CircularProgressIndicator())
@@ -135,8 +156,8 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
                       itemCount: _notifications.length,
                       itemBuilder: (context, index) {
                         final notification = _notifications[index];
-                        final productId = notification['productId'];
-                        final timestamp = notification['timestamp'];
+                        final productId = notification['productId'] ?? ''; // Handle missing field
+                        final timestamp = notification['timestamp'] as Timestamp?;
 
                         return Dismissible(
                           key: Key(notification.id),
@@ -172,7 +193,7 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
                             _deleteNotification(notification);
                           },
                           child: FutureBuilder<Map<String, dynamic>>(
-                            future: _fetchProductAndOwner(productId, notification['message'], timestamp),
+                            future: _fetchProductAndOwner(productId, notification['message'] ?? '', timestamp ?? Timestamp.now()),
                             builder: (context, snapshot) {
                               if (snapshot.connectionState == ConnectionState.waiting) {
                                 return Center(child: CircularProgressIndicator());
@@ -186,7 +207,7 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
                               return NotificationCard(
                                 productName: data['productName'],
                                 message: data['message'],
-                                timestamp: data['timestamp'],
+                                timestamp: data['timestamp'].toDate().toString(),
                               );
                             },
                           ),
@@ -221,7 +242,7 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
 class NotificationCard extends StatelessWidget {
   final String productName;
   final String message;
-  final Timestamp timestamp;
+  final String timestamp;
 
   const NotificationCard({
     required this.productName,
@@ -231,11 +252,6 @@ class NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String formattedDate = '';
-    if (timestamp != null) {
-      formattedDate = timestamp.toDate().toString();
-    }
-
     return Card(
       color: Colors.grey[200],
       elevation: 4,
@@ -261,7 +277,7 @@ class NotificationCard extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              'Date: $formattedDate',
+              'Date: $timestamp',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           ],

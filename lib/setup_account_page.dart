@@ -57,6 +57,8 @@ class _SetupAccountPageState extends State<SetupAccountPage> {
           'email': user.email,
           'profileImage': profileImageUrl ?? '',
           'idPhoto': idPhotoUrl ?? '',
+          'isAdmin': false, // Setting isAdmin to false for all new users
+          'isEnabled': true, // Setting isEnabled to true for all new users
         });
 
         // Show success notification after saving user data

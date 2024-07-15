@@ -1,11 +1,9 @@
-// seller_profile_page.dart
-// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, prefer_const_constructors
-
 import 'package:aepal/buyer/buyer_page.dart';
 import 'package:aepal/seller/seller_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'seller_edit_details_page.dart';
 
 class SellerProfilePage extends StatefulWidget {
   @override
@@ -14,14 +12,21 @@ class SellerProfilePage extends StatefulWidget {
 
 class _SellerProfilePageState extends State<SellerProfilePage> {
   int _selectedIndex = 2;
+  int _selectedButtonIndex = 0;
   User? _currentUser;
   Map<String, dynamic>? _userData;
+  List<Map<String, dynamic>> _userPosts = [];
+  List<String> _userImages = [];
+  List<Map<String, dynamic>> _farmLogs = [];
 
   @override
   void initState() {
     super.initState();
     _getCurrentUser();
     _fetchUserData();
+    _fetchUserPosts();
+    _fetchUserImages();
+    _fetchFarmLogs();
   }
 
   void _getCurrentUser() {
@@ -39,6 +44,69 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
           _userData = userDoc.data() as Map<String, dynamic>?;
         });
       }
+    }
+  }
+
+  Future<void> _fetchUserPosts() async {
+    if (_currentUser != null) {
+      QuerySnapshot postsSnapshot = await FirebaseFirestore.instance
+          .collection('products')
+          .where('userId', isEqualTo: _currentUser!.uid)
+          .get();
+      setState(() {
+        _userPosts = postsSnapshot.docs
+            .map((doc) => doc.data() as Map<String, dynamic>)
+            .toList();
+      });
+    }
+  }
+
+  Future<void> _fetchUserImages() async {
+    if (_currentUser != null) {
+      QuerySnapshot productsSnapshot = await FirebaseFirestore.instance
+          .collection('products')
+          .where('userId', isEqualTo: _currentUser!.uid)
+          .get();
+      setState(() {
+        _userImages = productsSnapshot.docs
+            .map((doc) => doc['imageUrl'] as String)
+            .toList();
+      });
+    }
+  }
+
+  Future<void> _fetchFarmLogs() async {
+    if (_currentUser != null) {
+      QuerySnapshot logsSnapshot = await FirebaseFirestore.instance
+          .collection('farmLogs')
+          .where('userId', isEqualTo: _currentUser!.uid)
+          .get();
+      setState(() {
+        _farmLogs = logsSnapshot.docs
+            .map((doc) => doc.data() as Map<String, dynamic>)
+            .toList();
+      });
+    }
+  }
+
+  void _addFarmLog(String activity, String description) async {
+    if (_currentUser != null) {
+      DocumentReference newLog = await FirebaseFirestore.instance
+          .collection('farmLogs')
+          .add({
+        'userId': _currentUser!.uid,
+        'activity': activity,
+        'description': description,
+        'timestamp': Timestamp.now(),
+      });
+      setState(() {
+        _farmLogs.add({
+          'activity': activity,
+          'description': description,
+          'timestamp': Timestamp.now(),
+          'id': newLog.id,
+        });
+      });
     }
   }
 
@@ -63,6 +131,12 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
       default:
         break;
     }
+  }
+
+  void _onButtonTapped(int index) {
+    setState(() {
+      _selectedButtonIndex = index;
+    });
   }
 
   @override
@@ -148,11 +222,13 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                Icon(Icons.shopping_cart, color: Colors.black),
+                                SizedBox(width: 8),
                                 Text(
                                   'Start Buying',
                                   style: TextStyle(color: Colors.black),
                                 ),
-                                Icon(Icons.arrow_forward, size: 16),
+                                Icon(Icons.arrow_forward, size: 16, color: Colors.black),
                               ],
                             ),
                           ),
@@ -210,6 +286,16 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Divider(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildSelectableButton('Posts', 0, Icons.post_add),
+                            _buildSelectableButton('FarmLog', 1, Icons.book),
+                            _buildSelectableButton('Images', 2, Icons.image),
+                          ],
+                        ),
+                        Divider(thickness: 2), // Add a long line below the buttons
                         SizedBox(height: 16),
                         Text(
                           'Details',
@@ -218,7 +304,6 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 8),
                         ListTile(
                           leading: Icon(Icons.phone),
                           title: Text(
@@ -247,6 +332,105 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                             style: TextStyle(fontSize: 16),
                           ),
                         ),
+                        SizedBox(height: 16),
+                        Center(
+                          child: Column(
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  icon: Icon(Icons.edit, color: Colors.white),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            SellerEditDetailsPage(
+                                          userData: _userData!,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  label: Text(
+                                    'Edit Details',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                              Divider(thickness: 2), // Add a long line below the Edit Details button
+                              if (_selectedButtonIndex == 0) ...[
+                                Text(
+                                  'Posts',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                ..._userPosts.map((post) => ListTile(
+                                      title: Text(post['productName']),
+                                      subtitle: Text(
+                                          'Available Kilos: ${post['availableKilos']}'),
+                                    )),
+                              ] else if (_selectedButtonIndex == 1) ...[
+                                Text(
+                                  'FarmLog',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                _buildFarmLogTable(),
+                                SizedBox(height: 16),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    icon: Icon(Icons.add, color: Colors.white),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                    ),
+                                    onPressed: () => _showAddLogDialog(context),
+                                    label: Text(
+                                      'Add Farm Activity',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ] else if (_selectedButtonIndex == 2) ...[
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 16.0, top: 16.0),
+                                  child: Text(
+                                    'Images',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 10), // Add space between the title and the images
+                                GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                  ),
+                                  itemCount: _userImages.length,
+                                  itemBuilder: (context, index) {
+                                    return Image.network(
+                                      _userImages[index],
+                                      fit: BoxFit.cover,
+                                    );
+                                  },
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -254,7 +438,11 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
               ),
             ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.grey,
+        items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
@@ -268,10 +456,126 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
             label: 'Profile',
           ),
         ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Color.fromARGB(255, 55, 143, 58),
-        unselectedItemColor: Colors.grey,
-        onTap: _onItemTapped,
+      ),
+    );
+  }
+
+  void _showAddLogDialog(BuildContext context) {
+    final activityController = TextEditingController();
+    final descriptionController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add Farm Activity'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: activityController,
+                decoration: InputDecoration(labelText: 'Activity'),
+              ),
+              TextField(
+                controller: descriptionController,
+                decoration: InputDecoration(labelText: 'Description'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel', style: TextStyle(color: Colors.red)),
+            ),
+            TextButton(
+              onPressed: () {
+                _addFarmLog(activityController.text, descriptionController.text);
+                Navigator.of(context).pop();
+              },
+              child: Text('Add', style: TextStyle(color: Colors.green)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFarmLogTable() {
+    return Table(
+      border: TableBorder.all(),
+      columnWidths: const {
+        0: FlexColumnWidth(2),
+        1: FlexColumnWidth(5),
+        2: FlexColumnWidth(3),
+      },
+      children: [
+        TableRow(
+          decoration: BoxDecoration(color: Colors.grey[300]),
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                'Activity',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                'Description',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                'Timestamp',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        ..._farmLogs.map((log) => TableRow(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(log['activity']),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(log['description']),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text((log['timestamp'] as Timestamp).toDate().toString()),
+                ),
+              ],
+            )),
+      ],
+    );
+  }
+
+  Widget _buildSelectableButton(String title, int index, IconData iconData) {
+    return GestureDetector(
+      onTap: () {
+        _onButtonTapped(index);
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            iconData,
+            color: _selectedButtonIndex == index ? Colors.green : Colors.grey,
+          ),
+          Text(
+            title,
+            style: TextStyle(
+              color: _selectedButtonIndex == index ? Colors.green : Colors.grey,
+            ),
+          ),
+        ],
       ),
     );
   }

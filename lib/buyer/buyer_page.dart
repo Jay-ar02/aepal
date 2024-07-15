@@ -315,6 +315,7 @@ class ProductCard extends StatelessWidget {
     TextStyle smallFontSize = TextStyle(fontSize: 12);
 
     return Card(
+      color: Colors.grey[100], // Set the card color to light gray
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
       ),
@@ -424,6 +425,7 @@ class ProductCard extends StatelessWidget {
     );
   }
 }
+
 
 void _showOfferBidModal(BuildContext context, String productId, double minAmount) {
   TextEditingController _bidAmountController = TextEditingController();
