@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:badges/badges.dart' as badges;
-import 'package:aepal/buyer/buyer_profile_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+
+import 'buyer_profile_page.dart';
 
 class BuyerPage extends StatefulWidget {
   final bool showSuccessNotification;
@@ -38,7 +41,8 @@ class _BuyerPageState extends State<BuyerPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        DocumentSnapshot userDoc =
+            await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         if (userDoc.exists) {
           setState(() {});
         }
@@ -68,7 +72,8 @@ class _BuyerPageState extends State<BuyerPage> {
     if (sellerId.isEmpty) return 'Unknown';
 
     try {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(sellerId).get();
+      DocumentSnapshot userDoc =
+          await FirebaseFirestore.instance.collection('users').doc(sellerId).get();
       if (userDoc.exists) {
         String firstName = userDoc['firstName'] ?? 'Unknown';
         String lastName = userDoc['lastName'] ?? '';
@@ -121,11 +126,16 @@ class _BuyerPageState extends State<BuyerPage> {
     }
   }
 
+  Future<void> _refreshProducts() async {
+    await Future.delayed(Duration(seconds: 2));
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Discover'),
+        title: Text('Bagsakan'),
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list),
@@ -133,70 +143,74 @@ class _BuyerPageState extends State<BuyerPage> {
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SearchBar(),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Text(
-              'BROWSE ALL',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+      body: RefreshIndicator(
+        onRefresh: _refreshProducts,
+        color: Colors.green,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SearchBar(),
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Text(
+                'BROWSE ALL',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('products').snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(child: Text('No products available.'));
-                }
-                var products = snapshot.data!.docs;
-                return GridView.builder(
-                  padding: EdgeInsets.all(10),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.65,
-                  ),
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    var product = products[index];
-                    var productId = product.id; // Adjust according to your data structure
-                    var userId = product['userId'] ?? ''; // Ensure userId is fetched
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('products').snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator(color: Colors.green));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(child: Text('No products available.'));
+                  }
+                  var products = snapshot.data!.docs;
+                  return GridView.builder(
+                    padding: EdgeInsets.all(10),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 0.65,
+                    ),
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      var product = products[index];
+                      var productId = product.id; // Adjust according to your data structure
+                      var userId = product['userId'] ?? ''; // Ensure userId is fetched
 
-                    return FutureBuilder<String>(
-                      future: _fetchSellerName(userId),
-                      builder: (context, sellerSnapshot) {
-                        if (sellerSnapshot.connectionState == ConnectionState.waiting) {
-                          return Center(child: CircularProgressIndicator());
-                        }
-                        return ProductCard(
-                          sellerName: sellerSnapshot.data ?? 'Unknown',
-                          imageUrl: product['imageUrl'] ?? 'https://via.placeholder.com/150',
-                          title: product['productName'],
-                          location: product['address'],
-                          availableKgs: product['availableKilos'],
-                          minAmount: product['minAmount'],
-                          timeDuration: product['timeDuration'],
-                          productId: productId,
-                          ownerId: userId,
-                        );
-                      },
-                    );
-                  },
-                );
-              },
+                      return FutureBuilder<String>(
+                        future: _fetchSellerName(userId),
+                        builder: (context, sellerSnapshot) {
+                          if (sellerSnapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator(color: Colors.green));
+                          }
+                          return ProductCard(
+                            sellerName: sellerSnapshot.data ?? 'Unknown',
+                            imageUrl: product['imageUrl'] ?? 'https://via.placeholder.com/150',
+                            title: product['productName'],
+                            location: product['address'],
+                            availableKgs: product['availableKilos'],
+                            minAmount: product['minAmount'],
+                            timeDuration: product['timeDuration'],
+                            productId: productId,
+                            ownerId: userId,
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
@@ -205,14 +219,14 @@ class _BuyerPageState extends State<BuyerPage> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-           icon: badges.Badge(
-  showBadge: _unreadNotifications > 0,
-  badgeContent: Text(
-    _unreadNotifications.toString(),
-    style: TextStyle(color: Colors.white),
-  ),
-  child: Icon(Icons.notifications),
-),
+            icon: badges.Badge(
+              showBadge: _unreadNotifications > 0,
+              badgeContent: Text(
+                _unreadNotifications.toString(),
+                style: TextStyle(color: Colors.white),
+              ),
+              child: Icon(Icons.notifications),
+            ),
             label: 'Notifications',
           ),
           BottomNavigationBarItem(
@@ -229,41 +243,137 @@ class _BuyerPageState extends State<BuyerPage> {
   }
 }
 
-class SearchBar extends StatelessWidget {
+class SearchBar extends StatefulWidget {
+  @override
+  _SearchBarState createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<SearchBar> {
+  final TextEditingController _controller = TextEditingController();
+  final StreamController<String> _searchStreamController = StreamController<String>();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _searchStreamController.close();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    _searchStreamController.add(query);
+  }
+
+  Stream<List<Map<String, dynamic>>> _search(String query) async* {
+    if (query.isEmpty) {
+      yield [];
+    } else {
+      final userResults = await FirebaseFirestore.instance
+          .collection('users')
+          .where('firstName', isGreaterThanOrEqualTo: query)
+          .where('firstName', isLessThanOrEqualTo: query + '\uf8ff')
+          .get();
+
+      final productResults = await FirebaseFirestore.instance
+          .collection('products')
+          .where('productName', isGreaterThanOrEqualTo: query)
+          .where('productName', isLessThanOrEqualTo: query + '\uf8ff')
+          .get();
+
+      final combinedResults = [
+        ...userResults.docs.map((doc) => {
+              'type': 'user',
+              'firstName': doc['firstName'],
+              'lastName': doc['lastName'],
+              'uid': doc.id,
+            }),
+        ...productResults.docs.map((doc) => {
+              'type': 'product',
+              'productName': doc['productName'],
+              'productId': doc.id,
+            }),
+      ];
+
+      yield combinedResults;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search here',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.black),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.black),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            controller: _controller,
+            onChanged: _onSearchChanged,
+            decoration: InputDecoration(
+              hintText: 'Search here',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.black),
               ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.black),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             ),
           ),
-          SizedBox(width: 10),
-          ElevatedButton(
-            onPressed: () {},
-            child: Text(
-              'SEARCH',
-              style: TextStyle(color: Colors.black),
-            ),
-          ),
-        ],
-      ),
+        ),
+        StreamBuilder<String>(
+          stream: _searchStreamController.stream,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Container(); // Hide suggestions when search query is empty
+            }
+
+            return StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _search(snapshot.data!),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator(color: Colors.green));
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                final results = snapshot.data ?? [];
+                if (results.isEmpty) {
+                  return Center(child: Text('No results found'));
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true, // Limit the height of ListView
+                  itemCount: results.length,
+                  itemBuilder: (context, index) {
+                    final result = results[index];
+                    if (result['type'] == 'user') {
+                      return ListTile(
+                        title: Text('${result['firstName']} ${result['lastName']}'),
+                        subtitle: Text('User ID: ${result['uid']}'),
+                        onTap: () {
+                          // Handle user tap
+                        },
+                      );
+                    } else {
+                      return ListTile(
+                        title: Text(result['productName']),
+                        subtitle: Text('Product ID: ${result['productId']}'),
+                        onTap: () {
+                          // Handle product tap
+                        },
+                      );
+                    }
+                  },
+                );
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 }
@@ -371,7 +481,7 @@ class ProductCard extends StatelessWidget {
                     future: _hasUserPlacedBid(productId),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
+                        return Center(child: CircularProgressIndicator(color: Colors.green));
                       }
                       if (snapshot.hasError || !snapshot.data!) {
                         // Show offer bid button if there's an error or user has not bid
@@ -425,7 +535,6 @@ class ProductCard extends StatelessWidget {
     );
   }
 }
-
 
 void _showOfferBidModal(BuildContext context, String productId, double minAmount) {
   TextEditingController _bidAmountController = TextEditingController();

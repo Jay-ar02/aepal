@@ -115,11 +115,17 @@ class _SellerPageState extends State<SellerPage> {
     );
   }
 
+  Future<void> _refreshProducts() async {
+    // Simulate a network call
+    await Future.delayed(Duration(seconds: 2));
+    setState(() {}); // Refresh the state to reload products
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Discover'),
+        title: Text('Bagsakan'),
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list),
@@ -138,96 +144,100 @@ class _SellerPageState extends State<SellerPage> {
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SearchBar(),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Text(
-              'MY PRODUCTS',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+      body: RefreshIndicator(
+        onRefresh: _refreshProducts,
+        color: Colors.green,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SearchBar(),
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Text(
+                'MY PRODUCTS',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: FutureBuilder<String>(
-              future: _getUserName(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData) {
-                  return Center(child: Text('No products available.'));
-                }
-                final sellerName = snapshot.data!;
+            Expanded(
+              child: FutureBuilder<String>(
+                future: _getUserName(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator(color: Colors.green));
+                  }
+                  if (!snapshot.hasData) {
+                    return Center(child: Text('No products available.'));
+                  }
+                  final sellerName = snapshot.data!;
 
-                return FutureBuilder<String>(
-                  future: _getUserId(),
-                  builder: (context, userSnapshot) {
-                    if (userSnapshot.connectionState == ConnectionState.waiting) {
-                      return Center(child: CircularProgressIndicator());
-                    }
-                    if (!userSnapshot.hasData) {
-                      return Center(child: Text('No products available.'));
-                    }
-                    final userId = userSnapshot.data!;
+                  return FutureBuilder<String>(
+                    future: _getUserId(),
+                    builder: (context, userSnapshot) {
+                      if (userSnapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator(color: Colors.green));
+                      }
+                      if (!userSnapshot.hasData) {
+                        return Center(child: Text('No products available.'));
+                      }
+                      final userId = userSnapshot.data!;
 
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('products')
-                          .where('userId', isEqualTo: userId) // Filter by userId
-                          .snapshots(),
-                      builder: (context, productSnapshot) {
-                        if (productSnapshot.connectionState == ConnectionState.waiting) {
-                          return Center(child: CircularProgressIndicator());
-                        }
-                        if (!productSnapshot.hasData) {
-                          return Center(child: Text('No products available.'));
-                        }
-                        var products = productSnapshot.data!.docs;
-                        return GridView.builder(
-                          padding: EdgeInsets.all(10),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                            childAspectRatio: 0.65,
-                          ),
-                          itemCount: products.length,
-                          itemBuilder: (context, index) {
-                            var product = products[index];
-                            return ProductCard(
-                              productId: product.id, // Pass the product ID
-                              sellerName: sellerName, // Use fetched seller name
-                              imageUrl: product['imageUrl'] ?? 'https://via.placeholder.com/150',
-                              title: product['productName'],
-                              location: product['address'],
-                              availableKgs: product['availableKilos'],
-                              timeDuration: product['timeDuration'],
-                              onPressed: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/viewBidders',
-                                  arguments: {'productId': product.id}, // Pass productId as arguments
-                                );
-                              },
-                              onLongPress: () {
-                                _showDeleteConfirmationDialog(context, product.id);
-                              },
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                );
-              },
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('products')
+                            .where('userId', isEqualTo: userId) // Filter by userId
+                            .snapshots(),
+                        builder: (context, productSnapshot) {
+                          if (productSnapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator(color: Colors.green));
+                          }
+                          if (!productSnapshot.hasData) {
+                            return Center(child: Text('No products available.'));
+                          }
+                          var products = productSnapshot.data!.docs;
+                          return GridView.builder(
+                            padding: EdgeInsets.all(10),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              childAspectRatio: 0.65,
+                            ),
+                            itemCount: products.length,
+                            itemBuilder: (context, index) {
+                              var product = products[index];
+                              return ProductCard(
+                                productId: product.id, // Pass the product ID
+                                sellerName: sellerName, // Use fetched seller name
+                                imageUrl: product['imageUrl'] ?? 'https://via.placeholder.com/150',
+                                title: product['productName'],
+                                location: product['address'],
+                                availableKgs: product['availableKilos'],
+                                timeDuration: product['timeDuration'],
+                                onPressed: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/viewBidders',
+                                    arguments: {'productId': product.id}, // Pass productId as arguments
+                                  );
+                                },
+                                onLongPress: () {
+                                  _showDeleteConfirmationDialog(context, product.id);
+                                },
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: [

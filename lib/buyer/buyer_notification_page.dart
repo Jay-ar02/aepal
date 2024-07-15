@@ -22,7 +22,7 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
     _fetchNotifications();
   }
 
-  void _fetchNotifications() async {
+  Future<void> _fetchNotifications() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final notifications = await FirebaseFirestore.instance
@@ -48,7 +48,8 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
     }
   }
 
-  Future<Map<String, dynamic>> _fetchProductAndOwner(String productId, String message, Timestamp timestamp) async {
+  Future<Map<String, dynamic>> _fetchProductAndOwner(
+      String productId, String message, Timestamp timestamp) async {
     try {
       final productDoc = await FirebaseFirestore.instance
           .collection('products')
@@ -68,9 +69,9 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
             'productId': productId,
             'productName': productData?['productName'] ?? '',
             'message': message
-              .replaceAll('contactNumber', ownerData?['contactNumber'] ?? 'Unknown')
-              .replaceAll('firstName', ownerData?['firstName'] ?? 'Unknown')
-              .replaceAll('lastName', ownerData?['lastName'] ?? 'Unknown'),
+                .replaceAll('contactNumber', ownerData?['contactNumber'] ?? 'Unknown')
+                .replaceAll('firstName', ownerData?['firstName'] ?? 'Unknown')
+                .replaceAll('lastName', ownerData?['lastName'] ?? 'Unknown'),
             'timestamp': timestamp,
             'read': false,
           };
@@ -147,73 +148,77 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
         ],
       ),
       body: _loading
-          ? Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: _notifications.isEmpty
-                  ? Center(child: Text('No notifications available'))
-                  : ListView.builder(
-                      itemCount: _notifications.length,
-                      itemBuilder: (context, index) {
-                        final notification = _notifications[index];
-                        final productId = notification['productId'] ?? ''; // Handle missing field
-                        final timestamp = notification['timestamp'] as Timestamp?;
+          ? Center(child: CircularProgressIndicator(color: Colors.green))
+          : RefreshIndicator(
+              onRefresh: _fetchNotifications,
+              color: Colors.green,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: _notifications.isEmpty
+                    ? Center(child: Text('No notifications available'))
+                    : ListView.builder(
+                        itemCount: _notifications.length,
+                        itemBuilder: (context, index) {
+                          final notification = _notifications[index];
+                          final productId = notification['productId'] ?? ''; // Handle missing field
+                          final timestamp = notification['timestamp'] as Timestamp?;
 
-                        return Dismissible(
-                          key: Key(notification.id),
-                          direction: DismissDirection.startToEnd,
-                          background: Container(
-                            color: Colors.red,
-                            alignment: Alignment.centerLeft,
-                            padding: EdgeInsets.symmetric(horizontal: 20.0),
-                            child: Icon(Icons.delete, color: Colors.white),
-                          ),
-                          confirmDismiss: (direction) async {
-                            return await showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: Text('Confirm'),
-                                  content: Text('Are you sure you want to delete this notification?'),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      onPressed: () => Navigator.of(context).pop(false),
-                                      child: Text('CANCEL'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.of(context).pop(true),
-                                      child: Text('DELETE'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          },
-                          onDismissed: (direction) {
-                            _deleteNotification(notification);
-                          },
-                          child: FutureBuilder<Map<String, dynamic>>(
-                            future: _fetchProductAndOwner(productId, notification['message'] ?? '', timestamp ?? Timestamp.now()),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return Center(child: CircularProgressIndicator());
-                              } else if (snapshot.hasError) {
-                                return Center(child: Text('Error fetching product data'));
-                              } else if (!snapshot.hasData || snapshot.data == null) {
-                                return Center(child: Text('Product data not found'));
-                              }
-
-                              final data = snapshot.data!;
-                              return NotificationCard(
-                                productName: data['productName'],
-                                message: data['message'],
-                                timestamp: data['timestamp'].toDate().toString(),
+                          return Dismissible(
+                            key: Key(notification.id),
+                            direction: DismissDirection.startToEnd,
+                            background: Container(
+                              color: Colors.red,
+                              alignment: Alignment.centerLeft,
+                              padding: EdgeInsets.symmetric(horizontal: 20.0),
+                              child: Icon(Icons.delete, color: Colors.white),
+                            ),
+                            confirmDismiss: (direction) async {
+                              return await showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: Text('Confirm'),
+                                    content: Text('Are you sure you want to delete this notification?'),
+                                    actions: <Widget>[
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(false),
+                                        child: Text('CANCEL'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(true),
+                                        child: Text('DELETE'),
+                                      ),
+                                    ],
+                                  );
+                                },
                               );
                             },
-                          ),
-                        );
-                      },
-                    ),
+                            onDismissed: (direction) {
+                              _deleteNotification(notification);
+                            },
+                            child: FutureBuilder<Map<String, dynamic>>(
+                              future: _fetchProductAndOwner(productId, notification['message'] ?? '', timestamp ?? Timestamp.now()),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return Center(child: CircularProgressIndicator(color: Colors.green));
+                                } else if (snapshot.hasError) {
+                                  return Center(child: Text('Error fetching product data'));
+                                } else if (!snapshot.hasData || snapshot.data == null) {
+                                  return Center(child: Text('Product data not found'));
+                                }
+
+                                final data = snapshot.data!;
+                                return NotificationCard(
+                                  productName: data['productName'],
+                                  message: data['message'],
+                                  timestamp: data['timestamp'].toDate().toString(),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+              ),
             ),
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[

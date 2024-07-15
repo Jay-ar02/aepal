@@ -12,6 +12,12 @@ class SellerNotificationPage extends StatefulWidget {
 
 class _SellerNotificationPageState extends State<SellerNotificationPage> {
   int _selectedIndex = 1; // Index for 'Notifications'
+  bool _loading = false;
+
+  Future<void> _fetchNotifications() async {
+    // Simulate network call
+    await Future.delayed(Duration(seconds: 2));
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -44,19 +50,25 @@ class _SellerNotificationPageState extends State<SellerNotificationPage> {
       appBar: AppBar(
         title: const Text('Notifications'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: const [
-            NotificationCard(
-              title: 'Product Posted Successfully',
-              message: 'Your product has been posted for bidding successfully. You can now view and manage your product bids.',
-              timestamp: '2024-06-30 10:00 AM',
+      body: _loading
+          ? Center(child: CircularProgressIndicator(color: Colors.green))
+          : RefreshIndicator(
+              onRefresh: _fetchNotifications,
+              color: Colors.green,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ListView(
+                  children: const [
+                    NotificationCard(
+                      title: 'Product Posted Successfully',
+                      message: 'Your product has been posted for bidding successfully. You can now view and manage your product bids.',
+                      timestamp: '2024-06-30 10:00 AM',
+                    ),
+                    // Add more notifications here if needed
+                  ],
+                ),
+              ),
             ),
-            // Add more notifications here if needed
-          ],
-        ),
-      ),
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(

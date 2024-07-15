@@ -1,6 +1,3 @@
-// seller_edit_details_page.dart
-// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, prefer_const_constructors
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -23,7 +20,7 @@ class _SellerEditDetailsPageState extends State<SellerEditDetailsPage> {
   late String birthday;
   late String contactNumber;
   late String gender;
-  late String profileImage;
+  final Map<String, Color> _borderColors = {};
 
   @override
   void initState() {
@@ -35,7 +32,6 @@ class _SellerEditDetailsPageState extends State<SellerEditDetailsPage> {
     birthday = widget.userData['birthday'];
     contactNumber = widget.userData['contactNumber'];
     gender = widget.userData['gender'];
-    profileImage = widget.userData['profileImage'];
   }
 
   Future<void> _updateUserData() async {
@@ -50,9 +46,27 @@ class _SellerEditDetailsPageState extends State<SellerEditDetailsPage> {
         'birthday': birthday,
         'contactNumber': contactNumber,
         'gender': gender,
-        'profileImage': profileImage,
       });
     }
+  }
+
+  InputDecoration _inputDecoration(String labelText, String field) {
+    return InputDecoration(
+      labelText: labelText,
+      labelStyle: TextStyle(color: Colors.black),
+      enabledBorder: UnderlineInputBorder(
+        borderSide: BorderSide(color: _borderColors[field] ?? Colors.black),
+      ),
+      focusedBorder: UnderlineInputBorder(
+        borderSide: BorderSide(color: Colors.blue),
+      ),
+    );
+  }
+
+  void _onFieldChange(String value, String field) {
+    setState(() {
+      _borderColors[field] = Colors.green;
+    });
   }
 
   @override
@@ -62,64 +76,106 @@ class _SellerEditDetailsPageState extends State<SellerEditDetailsPage> {
         title: Text('Edit Details'),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                TextFormField(
-                  initialValue: firstName,
-                  decoration: InputDecoration(labelText: 'First Name'),
-                  onChanged: (value) => firstName = value,
-                ),
-                TextFormField(
-                  initialValue: middleName,
-                  decoration: InputDecoration(labelText: 'Middle Name'),
-                  onChanged: (value) => middleName = value,
-                ),
-                TextFormField(
-                  initialValue: lastName,
-                  decoration: InputDecoration(labelText: 'Last Name'),
-                  onChanged: (value) => lastName = value,
-                ),
-                TextFormField(
-                  initialValue: address,
-                  decoration: InputDecoration(labelText: 'Address'),
-                  onChanged: (value) => address = value,
-                ),
-                TextFormField(
-                  initialValue: birthday,
-                  decoration: InputDecoration(labelText: 'Birthday'),
-                  onChanged: (value) => birthday = value,
-                ),
-                TextFormField(
-                  initialValue: contactNumber,
-                  decoration: InputDecoration(labelText: 'Contact Number'),
-                  onChanged: (value) => contactNumber = value,
-                ),
-                TextFormField(
-                  initialValue: gender,
-                  decoration: InputDecoration(labelText: 'Gender'),
-                  onChanged: (value) => gender = value,
-                ),
-                TextFormField(
-                  initialValue: profileImage,
-                  decoration: InputDecoration(labelText: 'Profile Image URL'),
-                  onChanged: (value) => profileImage = value,
-                ),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      _updateUserData();
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: Text('Save'),
-                ),
-              ],
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Update Your Personal Information',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16),
+                  TextFormField(
+                    initialValue: firstName,
+                    decoration: _inputDecoration('First Name', 'firstName'),
+                    cursorColor: Colors.black,
+                    onChanged: (value) {
+                      firstName = value;
+                      _onFieldChange(value, 'firstName');
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: middleName,
+                    decoration: _inputDecoration('Middle Name', 'middleName'),
+                    cursorColor: Colors.black,
+                    onChanged: (value) {
+                      middleName = value;
+                      _onFieldChange(value, 'middleName');
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: lastName,
+                    decoration: _inputDecoration('Last Name', 'lastName'),
+                    cursorColor: Colors.black,
+                    onChanged: (value) {
+                      lastName = value;
+                      _onFieldChange(value, 'lastName');
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: address,
+                    decoration: _inputDecoration('Address', 'address'),
+                    cursorColor: Colors.black,
+                    onChanged: (value) {
+                      address = value;
+                      _onFieldChange(value, 'address');
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: birthday,
+                    decoration: _inputDecoration('Birthday', 'birthday'),
+                    cursorColor: Colors.black,
+                    onChanged: (value) {
+                      birthday = value;
+                      _onFieldChange(value, 'birthday');
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: contactNumber,
+                    decoration: _inputDecoration('Contact Number', 'contactNumber'),
+                    cursorColor: Colors.black,
+                    onChanged: (value) {
+                      contactNumber = value;
+                      _onFieldChange(value, 'contactNumber');
+                    },
+                  ),
+                  TextFormField(
+                    initialValue: gender,
+                    decoration: _inputDecoration('Gender', 'gender'),
+                    cursorColor: Colors.black,
+                    onChanged: (value) {
+                      gender = value;
+                      _onFieldChange(value, 'gender');
+                    },
+                  ),
+                  SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          _updateUserData();
+                          Navigator.pop(context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text(
+                        'Save',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

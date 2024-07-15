@@ -1,3 +1,4 @@
+import 'package:aepal/seller/seller_edit_details_page.dart';
 import 'package:badges/badges.dart' as badge;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'buyer_notification_page.dart';
 import 'buyer_page.dart';
 import '../seller/seller_page.dart';
+import '../seller/seller_edit_details_page.dart';
 
 class BuyerProfilePage extends StatefulWidget {
   @override
@@ -13,6 +15,7 @@ class BuyerProfilePage extends StatefulWidget {
 
 class _BuyerProfilePageState extends State<BuyerProfilePage> {
   int _selectedIndex = 2; // Set default index to Profile
+  int _selectedButtonIndex = 0; // For the selectable buttons (Posts and Images)
   int _unreadNotifications = 0;
 
   // Firebase Auth instance
@@ -23,12 +26,16 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
 
   // User data
   Map<String, dynamic>? _userData;
+  List<Map<String, dynamic>> _userPosts = [];
+  List<String> _userImages = [];
 
   @override
   void initState() {
     super.initState();
     _fetchUserData();
-    _fetchNotifications(); // Fetch notifications on init
+    _fetchNotifications(); 
+    _fetchUserPosts();
+    _fetchUserImages();
   }
 
   Future<void> _fetchUserData() async {
@@ -58,6 +65,45 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
         _unreadNotifications = notifications.docs.length;
       });
     }
+  }
+
+  Future<void> _fetchUserPosts() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      QuerySnapshot postsSnapshot = await _firestore
+          .collection('products')
+          .where('userId', isEqualTo: user.uid)
+          .get();
+      setState(() {
+        _userPosts = postsSnapshot.docs
+            .map((doc) => doc.data() as Map<String, dynamic>)
+            .toList();
+      });
+    }
+  }
+
+  Future<void> _fetchUserImages() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      QuerySnapshot imagesSnapshot = await _firestore
+          .collection('products')
+          .where('userId', isEqualTo: user.uid)
+          .get();
+      setState(() {
+        _userImages = imagesSnapshot.docs
+            .map((doc) => doc['imageUrl'] as String)
+            .toList();
+      });
+    }
+  }
+
+  Future<void> _refreshData() async {
+    await Future.wait([
+      _fetchUserData(),
+      _fetchNotifications(),
+      _fetchUserPosts(),
+      _fetchUserImages(),
+    ]);
   }
 
   void _onItemTapped(int index) async {
@@ -105,6 +151,17 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
     }
   }
 
+  void _onButtonTapped(int index) {
+    setState(() {
+      _selectedButtonIndex = index;
+    });
+  }
+
+  void _updateProfileImage() async {
+    // Implement the logic to update profile image and upload it to Firestore
+    // Update _userData['profileImage'] and call setState to refresh the UI
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,78 +204,106 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
             },
           ),
         ],
+        title: Text('Profile'),
+        centerTitle: true,
       ),
       body: _userData == null
           ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(
-                children: [
-                  Stack(
-                    children: [
-                      Container(
-                        height: 220, // Increased height to accommodate button placement
-                        color: Colors.green,
-                      ),
-                      Positioned(
-                        top: 16, // Adjusted top position
-                        left: -23, // Adjusted left position
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: TextButton(
-                            style: TextButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.only(
-                                  topRight: Radius.circular(18.0),
-                                  bottomRight: Radius.circular(18.0),
+          : RefreshIndicator(
+              onRefresh: _refreshData,
+              color: Colors.green,
+              child: SingleChildScrollView(
+                physics: AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    Stack(
+                      children: [
+                        Container(
+                          height: 220, // Increased height to accommodate button placement
+                          color: Colors.green,
+                        ),
+                        Positioned(
+                          top: 16, // Adjusted top position
+                          left: -23, // Adjusted left position
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.only(
+                                    topRight: Radius.circular(18.0),
+                                    bottomRight: Radius.circular(18.0),
+                                  ),
                                 ),
                               ),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => SellerPage()),
-                              );
-                            },
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Start Selling',
-                                  style: TextStyle(color: Colors.black),
-                                ),
-                                Icon(Icons.arrow_forward, size: 16),
-                              ],
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => SellerPage()),
+                                );
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.shopping_cart, color: Colors.black),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Start Selling',
+                                    style: TextStyle(color: Colors.black),
+                                  ),
+                                  Icon(Icons.arrow_forward, size: 16, color: Colors.black),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      Positioned(
-                        top: 100,
-                        left: 16,
-                        right: 16,
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 50,
-                              backgroundColor: Colors.grey.shade200,
-                              backgroundImage: _userData?['profileImage'] != null
-                                  ? NetworkImage(_userData!['profileImage'])
-                                  : null,
-                              child: _userData?['profileImage'] == null
-                                  ? Icon(
-                                      Icons.person,
-                                      color: Colors.grey.shade400,
-                                      size: 80,
-                                    )
-                                  : null,
-                            ),
-                            SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
+                        Positioned(
+                          top: 100,
+                          left: 16,
+                          right: 16,
+                          child: Row(
+                            children: [
+                              Stack(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 50,
+                                    backgroundImage: _userData?['profileImage'] != null
+                                        ? NetworkImage(_userData?['profileImage'])
+                                        : null,
+                                    backgroundColor: Colors.grey.shade200,
+                                    child: _userData?['profileImage'] == null
+                                        ? Icon(
+                                            Icons.person,
+                                            color: Colors.grey.shade400,
+                                            size: 80,
+                                          )
+                                        : null,
+                                  ),
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.edit,
+                                        color: Colors.white,
+                                      ),
+                                      onPressed: () {
+                                        _updateProfileImage();
+                                      },
+                                      iconSize: 24,
+                                      color: Colors.green,
+                                      padding: EdgeInsets.zero,
+                                      constraints: BoxConstraints(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(width: 16),
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
@@ -229,8 +314,9 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
+                                  SizedBox(height: 8),
                                   Text(
-                                    _userData?['email'] ?? 'Email', // Replace with actual email
+                                    _userData?['email'] ?? 'Email',
                                     style: TextStyle(
                                       color: Colors.white70,
                                       fontSize: 16,
@@ -238,58 +324,141 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 16),
-                        Text(
-                          'Details',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        ListTile(
-                          leading: Icon(Icons.phone),
-                          title: Text(
-                            '${_userData?['contactNumber'] ?? 'Contact Number'}',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                        ListTile(
-                          leading: Icon(Icons.person),
-                          title: Text(
-                            '${_userData?['gender'] ?? 'Gender'}',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                        ListTile(
-                          leading: Icon(Icons.location_on),
-                          title: Text(
-                            '${_userData?['address'] ?? 'Address'}',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                        ListTile(
-                          leading: Icon(Icons.cake),
-                          title: Text(
-                            '${_userData?['birthday'] ?? 'Birthday'}',
-                            style: TextStyle(fontSize: 16),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Divider(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildSelectableButton('Posts', 0, Icons.post_add),
+                              _buildSelectableButton('Images', 1, Icons.image),
+                            ],
+                          ),
+                          Divider(thickness: 2), // Add a long line below the buttons
+                          SizedBox(height: 16),
+                          Text(
+                            'Details',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          ListTile(
+                            leading: Icon(Icons.phone),
+                            title: Text(
+                              _userData?['contactNumber'] ?? 'Contact Number',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          ListTile(
+                            leading: Icon(Icons.location_on),
+                            title: Text(
+                              _userData?['address'] ?? 'Address',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          ListTile(
+                            leading: Icon(Icons.cake),
+                            title: Text(
+                              _userData?['birthday'] ?? 'Birthday',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          ListTile(
+                            leading: Icon(Icons.person),
+                            title: Text(
+                              _userData?['gender'] ?? 'Gender',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Center(
+                            child: Column(
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    icon: Icon(Icons.edit, color: Colors.white),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              SellerEditDetailsPage(
+                                            userData: _userData!,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    label: Text(
+                                      'Edit Details',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                                Divider(thickness: 2), // Add a long line below the Edit Details button
+                                if (_selectedButtonIndex == 0) ...[
+                                  Text(
+                                    'Posts',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  ..._userPosts.map((post) => ListTile(
+                                        title: Text(post['productName']),
+                                        subtitle: Text(
+                                            'Available Kilos: ${post['availableKilos']}'),
+                                      )),
+                                ] else if (_selectedButtonIndex == 1) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 16.0, top: 16.0),
+                                    child: Text(
+                                      'Images',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 10), // Add space between the title and the images
+                                  GridView.builder(
+                                    shrinkWrap: true,
+                                    physics: NeverScrollableScrollPhysics(),
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      crossAxisSpacing: 10,
+                                      mainAxisSpacing: 10,
+                                    ),
+                                    itemCount: _userImages.length,
+                                    itemBuilder: (context, index) {
+                                      return Image.network(
+                                        _userImages[index],
+                                        fit: BoxFit.cover,
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
       bottomNavigationBar: BottomNavigationBar(
@@ -300,13 +469,13 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
           ),
           BottomNavigationBarItem(
             icon: badge.Badge(
-  showBadge: _unreadNotifications > 0,
-  badgeContent: Text(
-    _unreadNotifications.toString(),
-    style: TextStyle(color: Colors.white),
-  ),
-  child: Icon(Icons.notifications),
-),
+              showBadge: _unreadNotifications > 0,
+              badgeContent: Text(
+                _unreadNotifications.toString(),
+                style: TextStyle(color: Colors.white),
+              ),
+              child: Icon(Icons.notifications),
+            ),
             label: 'Notifications',
           ),
           BottomNavigationBarItem(
@@ -318,6 +487,29 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
         selectedItemColor: Color.fromARGB(255, 55, 143, 58),
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
+      ),
+    );
+  }
+
+  Widget _buildSelectableButton(String title, int index, IconData iconData) {
+    return GestureDetector(
+      onTap: () {
+        _onButtonTapped(index);
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            iconData,
+            color: _selectedButtonIndex == index ? Colors.green : Colors.grey,
+          ),
+          Text(
+            title,
+            style: TextStyle(
+              color: _selectedButtonIndex == index ? Colors.green : Colors.grey,
+            ),
+          ),
+        ],
       ),
     );
   }
