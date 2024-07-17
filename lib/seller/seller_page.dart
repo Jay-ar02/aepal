@@ -1,3 +1,5 @@
+// ignore_for_file: unused_import, use_key_in_widget_constructors, prefer_const_constructors, library_private_types_in_public_api, avoid_print, prefer_const_literals_to_create_immutables, prefer_const_constructors_in_immutables, sort_child_properties_last
+
 import 'package:flutter/material.dart';
 import 'add_product_page.dart';
 import 'seller_notification_page.dart';
@@ -124,8 +126,10 @@ class _SellerPageState extends State<SellerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Bagsakan'),
+         backgroundColor: Colors.white,
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list),
@@ -240,6 +244,7 @@ class _SellerPageState extends State<SellerPage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
+         backgroundColor: Colors.white,
         items: [
           BottomNavigationBarItem(
             icon: const Icon(Icons.home),

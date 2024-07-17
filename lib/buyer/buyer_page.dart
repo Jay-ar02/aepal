@@ -1,11 +1,11 @@
-import 'dart:async';
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, avoid_print, use_build_context_synchronously, prefer_const_constructors, prefer_interpolation_to_compose_strings, sized_box_for_whitespace, sort_child_properties_last, no_leading_underscores_for_local_identifiers
 
+import 'dart:async';
 import 'package:badges/badges.dart' as badges;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-
 import 'buyer_profile_page.dart';
 
 class BuyerPage extends StatefulWidget {
@@ -134,8 +134,10 @@ class _BuyerPageState extends State<BuyerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+       backgroundColor: Colors.white, 
       appBar: AppBar(
         title: Text('Bagsakan'),
+         backgroundColor: Colors.white,
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list),
@@ -213,6 +215,7 @@ class _BuyerPageState extends State<BuyerPage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
+         backgroundColor: Colors.white,
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -552,7 +555,14 @@ void _showOfferBidModal(BuildContext context, String productId, double minAmount
               bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
             child: SingleChildScrollView(
-              child: Padding(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white, // Background color
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20), // Upper left radius
+                    topRight: Radius.circular(20), // Upper right radius
+                  ),
+                ),
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

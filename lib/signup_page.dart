@@ -160,6 +160,7 @@ class _SignUpPageState extends State<SignUpPage> {
         ),
       ),
       child: Scaffold(
+         backgroundColor: Colors.white,
         appBar: AppBar(
           title: const Text('Register'),
           backgroundColor: Colors.transparent,

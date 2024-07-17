@@ -1,11 +1,13 @@
-// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, prefer_const_constructors
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, prefer_const_constructors, unused_local_variable
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'buyer/buyer_page.dart';
 import 'signup_page.dart';
 import 'admin/admin_page.dart';
+import 'forgot_password_page.dart'; // Add this import
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -36,6 +38,17 @@ class _LoginPageState extends State<LoginPage> {
           email: _email,
           password: _password,
         );
+
+        // Fetch the user document from Firestore
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).get();
+
+        // Check if the user is enabled
+        bool isEnabled = userDoc['isEnabled'] ?? true;
+        if (!isEnabled) {
+          FirebaseAuth.instance.signOut();
+          _showErrorDialog('Your account has been disabled. Please contact support.');
+          return;
+        }
 
         // Check for admin credentials
         if (_email == 'admin123@gmail.com' && _password == 'admin123') {
@@ -69,6 +82,10 @@ class _LoginPageState extends State<LoginPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.white, // Set background color to white
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero, // Remove border radius
+          ),
           title: const Text(
             'Login Error',
             style: TextStyle(color: Colors.red), // Set title color to red
@@ -105,6 +122,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
       child: Scaffold(
+        backgroundColor: Colors.white,
         appBar: AppBar(
           title: const Text('Log in'),
           backgroundColor: Colors.transparent,
@@ -202,7 +220,10 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       TextButton(
                         onPressed: () {
-                          // Handle forgot password
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => ForgotPasswordPage()),
+                          );
                         },
                         child: const Text(
                           'Forgot Password?',

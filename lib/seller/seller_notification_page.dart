@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_super_parameters
+// ignore_for_file: library_private_types_in_public_api, use_key_in_widget_constructors, use_super_parameters, prefer_final_fields, prefer_const_constructors
 
 import 'package:flutter/material.dart';
 import 'seller_profile_page.dart'; // Import your profile page here
@@ -47,7 +47,9 @@ class _SellerNotificationPageState extends State<SellerNotificationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+       backgroundColor: Colors.white,
       appBar: AppBar(
+         backgroundColor: Colors.white,
         title: const Text('Notifications'),
       ),
       body: _loading
@@ -70,6 +72,7 @@ class _SellerNotificationPageState extends State<SellerNotificationPage> {
               ),
             ),
       bottomNavigationBar: BottomNavigationBar(
+         backgroundColor: Colors.white,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),

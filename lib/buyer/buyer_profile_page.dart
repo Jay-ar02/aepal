@@ -1,3 +1,5 @@
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, use_build_context_synchronously, prefer_const_constructors, prefer_const_literals_to_create_immutables
+
 import 'package:aepal/seller/seller_edit_details_page.dart';
 import 'package:badges/badges.dart' as badge;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'buyer_notification_page.dart';
 import 'buyer_page.dart';
 import '../seller/seller_page.dart';
-import '../seller/seller_edit_details_page.dart';
 
 class BuyerProfilePage extends StatefulWidget {
   @override
@@ -165,7 +166,9 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+       backgroundColor: Colors.white,
       appBar: AppBar(
+         backgroundColor: Colors.white,
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
@@ -462,6 +465,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
               ),
             ),
       bottomNavigationBar: BottomNavigationBar(
+         backgroundColor: Colors.white,
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
