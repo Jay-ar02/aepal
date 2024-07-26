@@ -179,7 +179,7 @@ class _LoginPageState extends State<LoginPage> {
                       suffixIcon: IconButton(
                         icon: Icon(
                           _passwordVisible ? Icons.visibility : Icons.visibility_off,
-                          color: Colors.black,
+                          color: Colors.blue,
                         ),
                         onPressed: () {
                           setState(() {
@@ -213,7 +213,7 @@ class _LoginPageState extends State<LoginPage> {
                                 _rememberMe = value!;
                               });
                             },
-                            activeColor: Colors.black,
+                            activeColor: Colors.blue,
                           ),
                           const Text('Remember Me'),
                         ],

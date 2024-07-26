@@ -1,4 +1,4 @@
-// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, prefer_const_constructors, prefer_const_literals_to_create_immutables
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, prefer_const_constructors, prefer_const_literals_to_create_immutables, sort_child_properties_last, unnecessary_to_list_in_spreads
 
 import 'package:aepal/buyer/buyer_page.dart';
 import 'package:aepal/seller/seller_page.dart';
@@ -78,18 +78,24 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
   }
 
   Future<void> _fetchFarmLogs() async {
-    if (_currentUser != null) {
-      QuerySnapshot logsSnapshot = await FirebaseFirestore.instance
-          .collection('farmLogs')
-          .where('userId', isEqualTo: _currentUser!.uid)
-          .get();
-      setState(() {
-        _farmLogs = logsSnapshot.docs
-            .map((doc) => doc.data() as Map<String, dynamic>)
-            .toList();
-      });
-    }
+  if (_currentUser != null) {
+    QuerySnapshot logsSnapshot = await FirebaseFirestore.instance
+        .collection('farmLogs')
+        .where('userId', isEqualTo: _currentUser!.uid)
+        .get();
+    setState(() {
+      _farmLogs = logsSnapshot.docs.map((doc) {
+        var data = doc.data() as Map<String, dynamic>;
+        return {
+          'activity': data['activity'] ?? 'No activity',
+          'description': data['description'] ?? 'No description',
+          'timestamp': data['timestamp'] ?? Timestamp.now(),
+          'id': doc.id,
+        };
+      }).toList();
+    });
   }
+}
 
   Future<void> _refreshData() async {
     await Future.wait([
@@ -122,11 +128,11 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
   }
 
   void _deleteFarmLog(String logId, int index) async {
-    await FirebaseFirestore.instance.collection('farmLogs').doc(logId).delete();
-    setState(() {
-      _farmLogs.removeAt(index);
-    });
-  }
+  await FirebaseFirestore.instance.collection('farmLogs').doc(logId).delete();
+  setState(() {
+    _farmLogs.removeWhere((log) => log['id'] == logId);
+  });
+}
 
   void _onItemTapped(int index) {
     setState(() {
@@ -174,38 +180,46 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
             Navigator.pop(context); // Navigate back to the previous screen
           },
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: Text("Logout"),
-                    content: Text("Are you sure you want to logout?"),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: Text("No"),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          FirebaseAuth.instance.signOut();
-                          Navigator.pushNamedAndRemoveUntil(
-                              context, '/', (route) => false);
-                        },
-                        child: Text("Yes"),
-                      ),
-                    ],
-                  );
+       actions: [
+  IconButton(
+    icon: Icon(Icons.logout),
+    onPressed: () {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.white, // Set the background color of the modal
+            title: Text("Logout"),
+            content: Text("Are you sure you want to logout?"),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
                 },
-              );
-            },
-          ),
-        ],
+                child: Text("No"),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red, // Set the color for 'No' button
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  FirebaseAuth.instance.signOut();
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, '/', (route) => false);
+                },
+                child: Text("Yes"),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.green, // Set the color for 'Yes' button
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  ),
+],
+
         title: Text('Profile'),
         centerTitle: true,
       ),
@@ -576,81 +590,81 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
     );
   }
 
-  Widget _buildFarmLogTable() {
-    return Table(
-      border: TableBorder.all(),
-      columnWidths: const {
-        0: FlexColumnWidth(3),
-        1: FlexColumnWidth(5),
-        2: FlexColumnWidth(3),
-        3: FlexColumnWidth(2),
-      },
-      children: [
-        TableRow(
-          decoration: BoxDecoration(color: Colors.grey[300]),
+ Widget _buildFarmLogTable() {
+  return Table(
+    border: TableBorder.all(),
+    columnWidths: const {
+      0: FlexColumnWidth(3),
+      1: FlexColumnWidth(5),
+      2: FlexColumnWidth(3),
+      3: FlexColumnWidth(2),
+    },
+    children: [
+      TableRow(
+        decoration: BoxDecoration(color: Colors.grey[300]),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Activity',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Description',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Timestamp',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Delete',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+      ..._farmLogs.map((log) {
+        return TableRow(
           children: [
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Text(
-                'Activity',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              child: Text(log['activity'] ?? 'No activity'),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Text(
-                'Description',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              child: Text(log['description'] ?? 'No description'),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Text(
-                'Timestamp',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              child: Text(log['timestamp'] != null 
+                          ? (log['timestamp'] as Timestamp).toDate().toString() 
+                          : 'No timestamp'),
             ),
             Padding(
               padding: const EdgeInsets.all(8.0),
-              child: Text(
-                'Delete',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              child: IconButton(
+                icon: Icon(Icons.delete, color: Colors.red),
+                onPressed: () {
+                  _deleteFarmLog(log['id'], _farmLogs.indexOf(log));
+                },
               ),
             ),
           ],
-        ),
-        ..._farmLogs.asMap().entries.map((entry) {
-          int index = entry.key;
-          Map<String, dynamic> log = entry.value;
-          return TableRow(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(log['activity']),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(log['description']),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text((log['timestamp'] as Timestamp).toDate().toString()),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: IconButton(
-                  icon: Icon(Icons.delete, color: Colors.red),
-                  onPressed: () {
-                    _deleteFarmLog(log['id'], index);
-                  },
-                ),
-              ),
-            ],
-          );
-        }),
-      ],
-    );
-  }
+        );
+      }).toList(),
+    ],
+  );
+}
 
   Widget _buildSelectableButton(String title, int index, IconData iconData) {
     return GestureDetector(

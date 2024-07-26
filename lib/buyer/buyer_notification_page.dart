@@ -1,4 +1,4 @@
-// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, avoid_print, prefer_const_constructors, prefer_const_literals_to_create_immutables
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, avoid_print, prefer_const_constructors, prefer_const_literals_to_create_immutables, sort_child_properties_last
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -180,20 +180,28 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
                               return await showDialog(
                                 context: context,
                                 builder: (BuildContext context) {
-                                  return AlertDialog(
-                                    title: Text('Confirm'),
-                                    content: Text('Are you sure you want to delete this notification?'),
-                                    actions: <Widget>[
-                                      TextButton(
-                                        onPressed: () => Navigator.of(context).pop(false),
-                                        child: Text('CANCEL'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () => Navigator.of(context).pop(true),
-                                        child: Text('DELETE'),
-                                      ),
-                                    ],
-                                  );
+                                 return AlertDialog(
+  backgroundColor: Colors.white, // Set the background color of the modal
+  title: Text('Confirm'),
+  content: Text('Are you sure you want to delete this notification?'),
+  actions: <Widget>[
+    TextButton(
+      onPressed: () => Navigator.of(context).pop(false),
+      child: Text('CANCEL'),
+      style: TextButton.styleFrom(
+        foregroundColor: Colors.red, // Set the color for 'CANCEL' button
+      ),
+    ),
+    TextButton(
+      onPressed: () => Navigator.of(context).pop(true),
+      child: Text('DELETE'),
+      style: TextButton.styleFrom(
+        foregroundColor: Colors.green, // Set the color for 'DELETE' button
+      ),
+    ),
+  ],
+);
+
                                 },
                               );
                             },

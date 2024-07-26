@@ -12,6 +12,8 @@ import 'seller/view_bidders_page.dart'; // Import ViewBiddersPage
 import 'buyer/buyer_page.dart';
 import 'buyer/buyer_profile_page.dart';
 import 'seller/seller_profile_page.dart';
+import 'seller/add_address_page.dart';
+import 'seller/add_product_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +41,8 @@ class MyApp extends StatelessWidget {
         '/buyerNotifications': (context) => BuyerNotificationPage(),
         '/buyerPage': (context) => BuyerPage(),
         '/sellerProfile': (context) => SellerProfilePage(),
+        '/addAddress': (context) => AddAddressPage(),
+        '/addProduct': (context) => AddProductPage(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/viewBidders') {

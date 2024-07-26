@@ -1,10 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.aepal">  <!-- Ensure this package name matches your project -->
+    package="com.example.aepal"> <!-- Ensure this package name matches your project -->
 
     <!-- Permissions for accessing external storage -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <!-- WRITE_EXTERNAL_STORAGE is not needed for Android 10 (API level 29) and higher, but you might need it if your app targets lower versions -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <application
         android:label="aepal"
@@ -36,6 +38,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Add your Google Maps API key here -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR_GOOGLE_MAPS_API_KEY"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility?hl=en and

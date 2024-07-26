@@ -134,95 +134,96 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
-  void _showExitConfirmationDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
-        title: const Text('Exit App'),
-        content: const Text('Are you sure you want to exit?'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('No', style: TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-            },
-            child: const Text('Yes', style: TextStyle(color: Colors.green)),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showLogoutConfirmationDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('No', style: TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _logout();
-            },
-            child: const Text('Yes', style: TextStyle(color: Colors.green)),
-          ),
-        ],
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.0), // Set the border radius
       ),
-    );
-  }
+      title: const Text('Logout'),
+      content: const Text('Are you sure you want to logout?'),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: const Text('No', style: TextStyle(color: Colors.red)),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            _logout();
+          },
+          child: const Text('Yes', style: TextStyle(color: Colors.green)),
+        ),
+      ],
+    ),
+  );
+}
 
-  void _showDeleteConfirmationDialog(String id, String type, Future<void> Function(String) deleteFunction) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: Color.fromARGB(255, 255, 255, 255),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
-        title: Text('Delete $type'),
-        content: Text('Are you sure you want to delete this $type?'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('No', style: TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              deleteFunction(id);
-            },
-            child: const Text('Yes', style: TextStyle(color: Colors.green)),
-          ),
-        ],
+void _showDeleteConfirmationDialog(String id, String type, Future<void> Function(String) deleteFunction) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.0), // Set the border radius
       ),
-    );
-  }
+      title: Text('Delete $type'),
+      content: Text('Are you sure you want to delete this $type?'),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: const Text('No', style: TextStyle(color: Colors.red)),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            deleteFunction(id);
+          },
+          child: const Text('Yes', style: TextStyle(color: Colors.green)),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showExitConfirmationDialog() {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.0), // Set the border radius
+      ),
+      title: const Text('Exit App'),
+      content: const Text('Are you sure you want to exit?'),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: const Text('No', style: TextStyle(color: Colors.red)),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).pop();
+          },
+          child: const Text('Yes', style: TextStyle(color: Colors.green)),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Future<void> _toggleUserEnabledStatus(String userId, bool isEnabled) async {
     try {

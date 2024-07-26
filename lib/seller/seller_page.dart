@@ -1,4 +1,6 @@
-// ignore_for_file: unused_import, use_key_in_widget_constructors, prefer_const_constructors, library_private_types_in_public_api, avoid_print, prefer_const_literals_to_create_immutables, prefer_const_constructors_in_immutables, sort_child_properties_last
+// ignore_for_file: unused_import, use_key_in_widget_constructors, prefer_const_constructors, library_private_types_in_public_api, avoid_print, prefer_const_literals_to_create_immutables, prefer_const_constructors_in_immutables, sort_child_properties_last, prefer_interpolation_to_compose_strings, unused_local_variable, sized_box_for_whitespace
+
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'add_product_page.dart';
@@ -55,6 +57,23 @@ class _SellerPageState extends State<SellerPage> {
       return user.uid;
     }
     return '';
+  }
+
+  Future<Map<String, String>> _fetchSellerDetails(String sellerId) async {
+    if (sellerId.isEmpty) return {'name': 'Unknown', 'profileImageUrl': ''};
+
+    try {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(sellerId).get();
+      if (userDoc.exists) {
+        String firstName = userDoc['firstName'] ?? 'Unknown';
+        String lastName = userDoc['lastName'] ?? '';
+        String profileImageUrl = userDoc['profileImage'] ?? 'https://via.placeholder.com/150';
+        return {'name': '$firstName $lastName', 'profileImageUrl': profileImageUrl};
+      }
+    } catch (e) {
+      print("Error fetching seller data: $e");
+    }
+    return {'name': 'Unknown', 'profileImageUrl': ''};
   }
 
   void _onItemTapped(int index) {
@@ -129,7 +148,7 @@ class _SellerPageState extends State<SellerPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Bagsakan'),
-         backgroundColor: Colors.white,
+        backgroundColor: Colors.white,
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list),
@@ -212,23 +231,36 @@ class _SellerPageState extends State<SellerPage> {
                             itemCount: products.length,
                             itemBuilder: (context, index) {
                               var product = products[index];
-                              return ProductCard(
-                                productId: product.id, // Pass the product ID
-                                sellerName: sellerName, // Use fetched seller name
-                                imageUrl: product['imageUrl'] ?? 'https://via.placeholder.com/150',
-                                title: product['productName'],
-                                location: product['address'],
-                                availableKgs: product['availableKilos'],
-                                timeDuration: product['timeDuration'],
-                                onPressed: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    '/viewBidders',
-                                    arguments: {'productId': product.id}, // Pass productId as arguments
+                              var productId = product.id;
+                              var userId = product['userId'] ?? '';
+
+                              return FutureBuilder<Map<String, String>>(
+                                future: _fetchSellerDetails(userId),
+                                builder: (context, sellerSnapshot) {
+                                  if (sellerSnapshot.connectionState == ConnectionState.waiting) {
+                                    return Center(child: CircularProgressIndicator(color: Colors.green));
+                                  }
+                                  var sellerDetails = sellerSnapshot.data ?? {'name': 'Unknown', 'profileImageUrl': ''};
+                                  return ProductCard(
+                                    productId: productId,
+                                    sellerName: sellerDetails['name']!,
+                                    profileImageUrl: sellerDetails['profileImageUrl']!,
+                                    imageUrl: product['imageUrl'] ?? 'https://via.placeholder.com/150',
+                                    title: product['productName'],
+                                    location: product['address'],
+                                    availableKgs: product['availableKilos'],
+                                    timeDuration: product['timeDuration'],
+                                    onPressed: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        '/viewBidders',
+                                        arguments: {'productId': productId},
+                                      );
+                                    },
+                                    onLongPress: () {
+                                      _showDeleteConfirmationDialog(context, productId);
+                                    },
                                   );
-                                },
-                                onLongPress: () {
-                                  _showDeleteConfirmationDialog(context, product.id);
                                 },
                               );
                             },
@@ -244,7 +276,7 @@ class _SellerPageState extends State<SellerPage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-         backgroundColor: Colors.white,
+        backgroundColor: Colors.white,
         items: [
           BottomNavigationBarItem(
             icon: const Icon(Icons.home),
@@ -267,59 +299,157 @@ class _SellerPageState extends State<SellerPage> {
   }
 }
 
-class SearchBar extends StatelessWidget {
+class SearchBar extends StatefulWidget {
+  @override
+  _SearchBarState createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<SearchBar> {
+  final TextEditingController _controller = TextEditingController();
+  final StreamController<String> _searchStreamController = StreamController<String>();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _searchStreamController.close();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    _searchStreamController.add(query);
+  }
+
+  Stream<List<Map<String, dynamic>>> _search(String query) async* {
+    if (query.isEmpty) {
+      yield [];
+    } else {
+      final userResults = await FirebaseFirestore.instance
+          .collection('users')
+          .where('firstName', isGreaterThanOrEqualTo: query)
+          .where('firstName', isLessThanOrEqualTo: query + '\uf8ff')
+          .get();
+
+      final productResults = await FirebaseFirestore.instance
+          .collection('products')
+          .where('productName', isGreaterThanOrEqualTo: query)
+          .where('productName', isLessThanOrEqualTo: query + '\uf8ff')
+          .get();
+
+      final combinedResults = [
+        ...userResults.docs.map((doc) => {
+              'type': 'user',
+              'firstName': doc['firstName'],
+              'lastName': doc['lastName'],
+              'uid': doc.id,
+            }),
+        ...productResults.docs.map((doc) => {
+              'type': 'product',
+              'productName': doc['productName'],
+              'productId': doc.id,
+            }),
+      ];
+
+      yield combinedResults;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search here',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.black),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.black),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            controller: _controller,
+            onChanged: _onSearchChanged,
+            decoration: InputDecoration(
+              hintText: 'Search here',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.black),
               ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.black),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             ),
           ),
-          SizedBox(width: 10),
-          ElevatedButton(
-            onPressed: () {},
-            child: Text(
-              'SEARCH',
-              style: TextStyle(color: Colors.black),
-            ),
-          ),
-        ],
-      ),
+        ),
+        StreamBuilder<String>(
+          stream: _searchStreamController.stream,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Container(); // Hide suggestions when search query is empty
+            }
+
+            return StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _search(snapshot.data!),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator(color: Colors.green));
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                final results = snapshot.data ?? [];
+                if (results.isEmpty) {
+                  return Center(child: Text('No results found'));
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true, // Limit the height of ListView
+                  itemCount: results.length,
+                  itemBuilder: (context, index) {
+                    final result = results[index];
+                    if (result['type'] == 'user') {
+                      return ListTile(
+                        title: Text('${result['firstName']} ${result['lastName']}'),
+                        subtitle: Text('User ID: ${result['uid']}'),
+                        onTap: () {
+                          // Handle user tap
+                        },
+                      );
+                    } else {
+                      return ListTile(
+                        title: Text(result['productName']),
+                        subtitle: Text('Product ID: ${result['productId']}'),
+                        onTap: () {
+                          // Handle product tap
+                        },
+                      );
+                    }
+                  },
+                );
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 }
 
 class ProductCard extends StatelessWidget {
-  final String productId; // Add productId
+  final String productId;
   final String sellerName;
+  final String profileImageUrl;
   final String imageUrl;
   final String title;
   final String location;
   final int availableKgs;
-  final String timeDuration; // Changed from Duration to String
+  final String timeDuration;
   final VoidCallback onPressed;
-  final VoidCallback onLongPress; // Add onLongPress
+  final VoidCallback onLongPress;
 
   ProductCard({
     required this.productId,
     required this.sellerName,
+    required this.profileImageUrl,
     required this.imageUrl,
     required this.title,
     required this.location,
@@ -334,84 +464,114 @@ class ProductCard extends StatelessWidget {
     TextStyle smallFontSize = TextStyle(fontSize: 12);
 
     return GestureDetector(
-      onLongPress: onLongPress, // Handle long press
-      child: Card(
-        color: Colors.grey[100], // Set the card color to light gray
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    sellerName,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-            ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-              child: Image.network(
-                imageUrl,
-                height: 110,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(9.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      onLongPress: onLongPress,
+      child: SizedBox(
+        height: 270,
+        child: Card(
+          color: Colors.grey[100],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    CircleAvatar(
+                      backgroundImage: NetworkImage(profileImageUrl),
+                      radius: 20,
                     ),
-                    Text(location, style: smallFontSize.copyWith(fontStyle: FontStyle.italic)),
-                    Text('AVAILABLE KLS.: $availableKgs', style: smallFontSize),
-                    Row(
-                      children: [
-                        Text(
-                          'Time Duration: ',
-                          style: smallFontSize,
-                        ),
-                        Text(
-                          timeDuration,
-                          style: smallFontSize.copyWith(
-                            color: Colors.red,
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            sellerName,
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: onPressed,
-                      child: Text(
-                        'VIEW BIDDERS',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: ButtonStyle(
-                        backgroundColor: MaterialStateProperty.all<Color>(Colors.green),
-                        minimumSize: MaterialStateProperty.all<Size>(Size(double.infinity, 30)),
-                        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                          RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
+                          Row(
+                            children: [
+                              Icon(Icons.location_on, color: Colors.blue, size: 16),
+                              Expanded(
+                                child: Text(
+                                  location,
+                                  style: TextStyle(fontStyle: FontStyle.italic, color: Colors.blue),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+              ClipRRect(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(7), bottom: Radius.circular(7)),
+                child: Image.network(
+                  imageUrl,
+                  height: 110,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(9.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'AVAILABLE KLS.: $availableKgs',
+                        style: smallFontSize,
+                      ),
+                      SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            'Time Duration: ',
+                            style: smallFontSize.copyWith(color: Colors.black),
+                          ),
+                          Text(
+                            timeDuration,
+                            style: smallFontSize.copyWith(color: Colors.red),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        height: 30,
+                        child: ElevatedButton(
+                          onPressed: onPressed,
+                          child: Text(
+                            'VIEW BIDDERS',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

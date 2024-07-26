@@ -1,4 +1,4 @@
-// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, use_build_context_synchronously, prefer_const_constructors, prefer_const_literals_to_create_immutables
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, use_build_context_synchronously, prefer_const_constructors, prefer_const_literals_to_create_immutables, sort_child_properties_last
 
 import 'package:aepal/seller/seller_edit_details_page.dart';
 import 'package:badges/badges.dart' as badge;
@@ -176,37 +176,45 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
           },
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: Text("Logout"),
-                    content: Text("Are you sure you want to logout?"),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: Text("No"),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          FirebaseAuth.instance.signOut();
-                          Navigator.pushNamedAndRemoveUntil(
-                              context, '/', (route) => false);
-                        },
-                        child: Text("Yes"),
-                      ),
-                    ],
-                  );
+  IconButton(
+    icon: Icon(Icons.logout),
+    onPressed: () {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.white, // Set the background color of the modal
+            title: Text("Logout"),
+            content: Text("Are you sure you want to logout?"),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
                 },
-              );
-            },
-          ),
-        ],
+                child: Text("No"),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red, // Set the color for 'No' button
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  FirebaseAuth.instance.signOut();
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, '/', (route) => false);
+                },
+                child: Text("Yes"),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.green, // Set the color for 'Yes' button
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  ),
+],
+
         title: Text('Profile'),
         centerTitle: true,
       ),

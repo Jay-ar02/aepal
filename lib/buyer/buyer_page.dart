@@ -68,8 +68,8 @@ class _BuyerPageState extends State<BuyerPage> {
     }
   }
 
-  Future<String> _fetchSellerName(String sellerId) async {
-    if (sellerId.isEmpty) return 'Unknown';
+  Future<Map<String, String>> _fetchSellerDetails(String sellerId) async {
+    if (sellerId.isEmpty) return {'name': 'Unknown', 'profileImageUrl': ''};
 
     try {
       DocumentSnapshot userDoc =
@@ -77,12 +77,28 @@ class _BuyerPageState extends State<BuyerPage> {
       if (userDoc.exists) {
         String firstName = userDoc['firstName'] ?? 'Unknown';
         String lastName = userDoc['lastName'] ?? '';
-        return '$firstName $lastName';
+        String profileImageUrl = userDoc['profileImage'] ?? 'https://via.placeholder.com/150';
+        return {'name': '$firstName $lastName', 'profileImageUrl': profileImageUrl};
       }
     } catch (e) {
       print("Error fetching seller data: $e");
     }
-    return 'Unknown';
+    return {'name': 'Unknown', 'profileImageUrl': ''};
+  }
+
+  Future<Map<String, dynamic>> _fetchAddressDetails(String userId) async {
+    if (userId.isEmpty) return {'street': '', 'barangay': '', 'municipality': '', 'imageUrl': '', 'userId': ''};
+
+    try {
+      DocumentSnapshot addressDoc =
+          await FirebaseFirestore.instance.collection('addresses').doc(userId).get();
+      if (addressDoc.exists) {
+        return addressDoc.data() as Map<String, dynamic>;
+      }
+    } catch (e) {
+      print("Error fetching address data: $e");
+    }
+    return {'street': '', 'barangay': '', 'municipality': '', 'imageUrl': '', 'userId': ''};
   }
 
   void _onItemTapped(int index) async {
@@ -134,10 +150,10 @@ class _BuyerPageState extends State<BuyerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       backgroundColor: Colors.white, 
+      backgroundColor: Colors.white, 
       appBar: AppBar(
         title: Text('Bagsakan'),
-         backgroundColor: Colors.white,
+        backgroundColor: Colors.white,
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list),
@@ -187,14 +203,16 @@ class _BuyerPageState extends State<BuyerPage> {
                       var productId = product.id; // Adjust according to your data structure
                       var userId = product['userId'] ?? ''; // Ensure userId is fetched
 
-                      return FutureBuilder<String>(
-                        future: _fetchSellerName(userId),
+                      return FutureBuilder<Map<String, String>>(
+                        future: _fetchSellerDetails(userId),
                         builder: (context, sellerSnapshot) {
                           if (sellerSnapshot.connectionState == ConnectionState.waiting) {
                             return Center(child: CircularProgressIndicator(color: Colors.green));
                           }
+                          var sellerDetails = sellerSnapshot.data ?? {'name': 'Unknown', 'profileImageUrl': ''};
                           return ProductCard(
-                            sellerName: sellerSnapshot.data ?? 'Unknown',
+                            sellerName: sellerDetails['name']!,
+                            profileImageUrl: sellerDetails['profileImageUrl']!,
                             imageUrl: product['imageUrl'] ?? 'https://via.placeholder.com/150',
                             title: product['productName'],
                             location: product['address'],
@@ -203,6 +221,9 @@ class _BuyerPageState extends State<BuyerPage> {
                             timeDuration: product['timeDuration'],
                             productId: productId,
                             ownerId: userId,
+                            onAddressTap: () {
+                              _showAddressModal(context, userId);
+                            },
                           );
                         },
                       );
@@ -215,7 +236,7 @@ class _BuyerPageState extends State<BuyerPage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-         backgroundColor: Colors.white,
+        backgroundColor: Colors.white,
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -244,6 +265,97 @@ class _BuyerPageState extends State<BuyerPage> {
       ),
     );
   }
+
+  void _showAddressModal(BuildContext context, String userId) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (BuildContext context) {
+      return FutureBuilder<Map<String, dynamic>>(
+        future: _fetchAddressDetails(userId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Container(
+              height: 200, // Adjust height as needed
+              child: Center(child: CircularProgressIndicator(color: Colors.green)),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Container(
+              height: 200, // Adjust height as needed
+              child: Center(child: Text('Error: ${snapshot.error}')),
+            );
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Container(
+              height: 200, // Adjust height as needed
+              child: Center(child: Text('No address found.')),
+            );
+          }
+
+          var addressDetails = snapshot.data!;
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: SingleChildScrollView(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "FARMER'S FARM LOCATION",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.location_on, color: Colors.blue, size: 20),
+                        SizedBox(width: 8), // Space between icon and text
+                        Expanded(
+                          child: Wrap(
+                            children: [
+                              Text(
+                                '${addressDetails['street']}, ${addressDetails['barangay']}, ${addressDetails['municipality']}, Albay, Philippines',
+                                style: TextStyle(fontSize: 16, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    if (addressDetails['imageUrl'] != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(
+                          addressDetails['imageUrl'],
+                          height: 150,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 }
 
 class SearchBar extends StatefulWidget {
@@ -282,17 +394,25 @@ class _SearchBarState extends State<SearchBar> {
           .where('productName', isLessThanOrEqualTo: query + '\uf8ff')
           .get();
 
+      final municipalityResults = await FirebaseFirestore.instance
+          .collection('addresses')
+          .where('municipality', isGreaterThanOrEqualTo: query)
+          .where('municipality', isLessThanOrEqualTo: query + '\uf8ff')
+          .get();
+
       final combinedResults = [
         ...userResults.docs.map((doc) => {
               'type': 'user',
               'firstName': doc['firstName'],
               'lastName': doc['lastName'],
-              'uid': doc.id,
             }),
         ...productResults.docs.map((doc) => {
               'type': 'product',
               'productName': doc['productName'],
-              'productId': doc.id,
+            }),
+        ...municipalityResults.docs.map((doc) => {
+              'type': 'municipality',
+              'municipality': doc['municipality'],
             }),
       ];
 
@@ -356,17 +476,22 @@ class _SearchBarState extends State<SearchBar> {
                     if (result['type'] == 'user') {
                       return ListTile(
                         title: Text('${result['firstName']} ${result['lastName']}'),
-                        subtitle: Text('User ID: ${result['uid']}'),
                         onTap: () {
                           // Handle user tap
                         },
                       );
-                    } else {
+                    } else if (result['type'] == 'product') {
                       return ListTile(
                         title: Text(result['productName']),
-                        subtitle: Text('Product ID: ${result['productId']}'),
                         onTap: () {
                           // Handle product tap
+                        },
+                      );
+                    } else {
+                      return ListTile(
+                        title: Text(result['municipality']),
+                        onTap: () {
+                          // Handle municipality tap
                         },
                       );
                     }
@@ -383,6 +508,7 @@ class _SearchBarState extends State<SearchBar> {
 
 class ProductCard extends StatelessWidget {
   final String sellerName;
+  final String profileImageUrl;
   final String imageUrl;
   final String title;
   final String location;
@@ -390,10 +516,12 @@ class ProductCard extends StatelessWidget {
   final double minAmount;
   final String timeDuration;
   final String productId;
-  final String ownerId; // Add ownerId here
+  final String ownerId;
+  final VoidCallback onAddressTap;
 
   const ProductCard({
     required this.sellerName,
+    required this.profileImageUrl,
     required this.imageUrl,
     required this.title,
     required this.location,
@@ -401,7 +529,8 @@ class ProductCard extends StatelessWidget {
     required this.minAmount,
     required this.timeDuration,
     required this.productId,
-    required this.ownerId, // Add ownerId here
+    required this.ownerId,
+    required this.onAddressTap,
   });
 
   Future<bool> _hasUserPlacedBid(String productId) async {
@@ -427,113 +556,159 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     TextStyle smallFontSize = TextStyle(fontSize: 12);
 
-    return Card(
-      color: Colors.grey[100], // Set the card color to light gray
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              sellerName,
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          ClipRRect(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
-            child: Image.network(
-              imageUrl,
-              height: 110,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(9.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      height: 270, // Adjust this height as needed
+      child: Card(
+        color: Colors.grey[100], // Set the card color to light gray
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(profileImageUrl),
+                    radius: 20,
                   ),
-                  Text(location, style: smallFontSize.copyWith(fontStyle: FontStyle.italic)),
-                  Text(
-                    'AVAILABLE KLS.: $availableKgs',
-                    style: smallFontSize,
-                  ),
-                  SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        'Time Duration: ',
-                        style: smallFontSize.copyWith(color: Colors.black),
-                      ),
-                      Text(
-                        timeDuration,
-                        style: smallFontSize.copyWith(color: Colors.red),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  FutureBuilder<bool>(
-                    future: _hasUserPlacedBid(productId),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator(color: Colors.green));
-                      }
-                      if (snapshot.hasError || !snapshot.data!) {
-                        // Show offer bid button if there's an error or user has not bid
-                        return Container(
-                          width: double.infinity,
-                          height: 30,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              _showOfferBidModal(context, productId, minAmount);
-                            },
-                            child: Text(
-                              'OFFER BID',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.zero,
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          sellerName,
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on, color: Colors.blue, size: 16),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: onAddressTap,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        location,
+                                        style: TextStyle(
+                                          fontStyle: FontStyle.italic,
+                                          color: Colors.blue,
+                                          // decoration: TextDecoration.underline, // Optional
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Icon(Icons.arrow_forward_ios, color: Colors.blue, size: 12),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      } else {
-                        // Show a disabled button or alternative text indicating bid placed
-                        return Container(
-                          width: double.infinity,
-                          height: 30,
-                          child: ElevatedButton(
-                            onPressed: null,
-                            child: Text(
-                              'BID PLACED',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.zero,
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                    },
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7), bottom: Radius.circular(7)),
+              child: Image.network(
+                imageUrl,
+                height: 110,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(9.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'AVAILABLE KLS.: $availableKgs',
+                      style: smallFontSize,
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          'Time Duration: ',
+                          style: smallFontSize.copyWith(color: Colors.black),
+                        ),
+                        Text(
+                          timeDuration,
+                          style: smallFontSize.copyWith(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    FutureBuilder<bool>(
+                      future: _hasUserPlacedBid(productId),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator(color: Colors.green));
+                        }
+                        if (snapshot.hasError || !snapshot.data!) {
+                          // Show offer bid button if there's an error or user has not bid
+                          return Container(
+                            width: double.infinity,
+                            height: 30,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                _showOfferBidModal(context, productId, minAmount);
+                              },
+                              child: Text(
+                                'OFFER BID',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.zero,
+                                ),
+                              ),
+                            ),
+                          );
+                        } else {
+                          // Show a disabled button or alternative text indicating bid placed
+                          return Container(
+                            width: double.infinity,
+                            height: 30,
+                            child: ElevatedButton(
+                              onPressed: null,
+                              child: Text(
+                                'BID PLACED',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.zero,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -219,7 +219,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       suffixIcon: IconButton(
                         icon: Icon(
                           _passwordVisible ? Icons.visibility : Icons.visibility_off,
-                          color: Colors.black,
+                          color: Colors.blue,
                         ),
                         onPressed: () {
                           setState(() {
@@ -250,7 +250,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             _termsAccepted = value!;
                           });
                         },
-                        activeColor: Colors.black, // Set the color to black
+                        activeColor: Colors.blue, // Set the color to black
                       ),
                       Expanded(
                         child: RichText(
@@ -312,7 +312,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             _privacyAccepted = value!;
                           });
                         },
-                        activeColor: Colors.black, // Set the color to black
+                        activeColor: Colors.blue, // Set the color to black
                       ),
                       Expanded(
                         child: RichText(
