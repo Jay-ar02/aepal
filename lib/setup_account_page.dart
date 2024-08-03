@@ -4,9 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:intl/intl.dart';
+
 import 'buyer/buyer_page.dart';
 
 class SetupAccountPage extends StatefulWidget {
@@ -29,6 +30,13 @@ class _SetupAccountPageState extends State<SetupAccountPage> {
   final _birthdayController = TextEditingController();
   File? _profileImage;
   File? _idPhoto;
+  final FocusNode _contactNumberFocusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _contactNumberFocusNode.dispose();
+    super.dispose();
+  }
 
   Future<void> _saveUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -52,7 +60,7 @@ class _SetupAccountPageState extends State<SetupAccountPage> {
           'firstName': _firstNameController.text,
           'middleName': _middleNameController.text,
           'lastName': _lastNameController.text,
-          'contactNumber': _contactNumberController.text,
+          'contactNumber': '+63${_contactNumberController.text}',
           'gender': _genderController.text,
           'address': _addressController.text,
           'birthday': _birthdayController.text,
@@ -64,17 +72,25 @@ class _SetupAccountPageState extends State<SetupAccountPage> {
         });
 
         // Show success notification after saving user data
-        Fluttertoast.showToast(
-          msg: "Registered Successfully",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Registered Successfully'),
+            duration: Duration(seconds: 2),
+          ),
         );
+
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => BuyerPage()),
         );
       } catch (e) {
         print("Error saving user data: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving user data'),
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
     }
   }
@@ -98,18 +114,40 @@ class _SetupAccountPageState extends State<SetupAccountPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (widget.showSuccessNotification) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Fluttertoast.showToast(
-          msg: "Registered Successfully",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
+  Future<void> _selectDate(BuildContext context) async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            dialogBackgroundColor: Colors.white,
+            colorScheme: ColorScheme.light(
+              primary: Colors.green, // header background color
+              onPrimary: Colors.white, // header text color
+              onSurface: Colors.black, // body text color
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black, // button text color
+              ),
+            ),
+          ),
+          child: child!,
         );
+      },
+    );
+    if (pickedDate != null) {
+      setState(() {
+        _birthdayController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
       });
     }
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -189,24 +227,39 @@ class _SetupAccountPageState extends State<SetupAccountPage> {
                     },
                   ),
                   SizedBox(height: 16),
-                  TextFormField(
-                    controller: _contactNumberController,
-                    decoration: InputDecoration(
-                      labelText: 'Contact Number',
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black),
+                  Focus(
+                    focusNode: _contactNumberFocusNode,
+                    child: TextFormField(
+                      controller: _contactNumberController,
+                      decoration: InputDecoration(
+                        labelText: 'Contact Number',
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.black),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.black),
+                        ),
+                        labelStyle: TextStyle(color: Colors.black),
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.all(14.0),
+                          child: Text("🇵🇭 +63", style: TextStyle(fontSize: 16)),
+                        ),
+                        contentPadding: EdgeInsets.fromLTRB(16, 20, 20, 20),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black),
-                      ),
-                      labelStyle: TextStyle(color: Colors.black),
+                      cursorColor: Colors.black,
+                      maxLength: 10, // Only allow 10 digits input
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.length != 10) {
+                          return 'Please enter a valid contact number';
+                        }
+                        return null;
+                      },
                     ),
-                    cursorColor: Colors.black,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your contact number';
-                      }
-                      return null;
+                    onFocusChange: (hasFocus) {
+                      setState(() {
+                        // Trigger rebuild to show/hide the prefix based on focus
+                      });
                     },
                   ),
                   SizedBox(height: 16),
@@ -236,8 +289,6 @@ class _SetupAccountPageState extends State<SetupAccountPage> {
                       }
                       return null;
                     },
-                    style: TextStyle(color: Colors.black),
-                    dropdownColor: Colors.white,
                   ),
                   SizedBox(height: 16),
                   TextFormField(
@@ -274,6 +325,8 @@ class _SetupAccountPageState extends State<SetupAccountPage> {
                       labelStyle: TextStyle(color: Colors.black),
                     ),
                     cursorColor: Colors.black,
+                    readOnly: true,
+                    onTap: () => _selectDate(context),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your birthday';

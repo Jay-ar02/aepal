@@ -7,11 +7,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'buyer_profile_page.dart';
+import 'buyer_search_page.dart';
 
 class BuyerPage extends StatefulWidget {
   final bool showSuccessNotification;
+  final String? municipalityFilter;
 
-  const BuyerPage({this.showSuccessNotification = false});
+  const BuyerPage({this.showSuccessNotification = false, this.municipalityFilter});
 
   @override
   _BuyerPageState createState() => _BuyerPageState();
@@ -20,12 +22,16 @@ class BuyerPage extends StatefulWidget {
 class _BuyerPageState extends State<BuyerPage> {
   int _selectedIndex = 0;
   int _unreadNotifications = 0;
+  final TextEditingController _controller = TextEditingController(); 
+  String _searchQuery = ''; 
+  String? _municipalityFilter; 
 
   @override
   void initState() {
     super.initState();
+    _municipalityFilter = widget.municipalityFilter; 
     _fetchUserName();
-    _fetchNotifications(); // Fetch notifications on init
+    _fetchNotifications(); 
     if (widget.showSuccessNotification) {
       Future.delayed(Duration.zero, () {
         Fluttertoast.showToast(
@@ -117,7 +123,7 @@ class _BuyerPageState extends State<BuyerPage> {
       });
 
       setState(() {
-        _unreadNotifications = 0; // Reset unread notifications count
+        _unreadNotifications = 0; 
       });
     }
 
@@ -147,6 +153,29 @@ class _BuyerPageState extends State<BuyerPage> {
     setState(() {});
   }
 
+  Future<void> _navigateToSearchPage() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BuyerSearchPage(initialQuery: _controller.text),
+      ),
+    );
+
+    if (result != null) {
+      if (result is String) {
+        setState(() {
+          _searchQuery = result;
+          _municipalityFilter = null;
+        });
+      } else if (result is Map && result.containsKey('municipality')) {
+        setState(() {
+          _searchQuery = '';
+          _municipalityFilter = result['municipality'];
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -167,7 +196,31 @@ class _BuyerPageState extends State<BuyerPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SearchBar(),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GestureDetector(
+                onTap: _navigateToSearchPage,
+                child: AbsorbPointer(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: InputDecoration(
+                      hintText: 'Search here',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.all(10.0),
               child: Text(
@@ -189,6 +242,17 @@ class _BuyerPageState extends State<BuyerPage> {
                     return Center(child: Text('No products available.'));
                   }
                   var products = snapshot.data!.docs;
+
+                  if (_municipalityFilter != null) {
+                    products = products.where((product) {
+                      return product['address'].contains(_municipalityFilter!);
+                    }).toList();
+                  } else if (_searchQuery.isNotEmpty) {
+                    products = products.where((product) {
+                      return product['productName'].toLowerCase().contains(_searchQuery.toLowerCase());
+                    }).toList();
+                  }
+
                   return GridView.builder(
                     padding: EdgeInsets.all(10),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -267,241 +331,93 @@ class _BuyerPageState extends State<BuyerPage> {
   }
 
   void _showAddressModal(BuildContext context, String userId) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    builder: (BuildContext context) {
-      return FutureBuilder<Map<String, dynamic>>(
-        future: _fetchAddressDetails(userId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Container(
-              height: 200, // Adjust height as needed
-              child: Center(child: CircularProgressIndicator(color: Colors.green)),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Container(
-              height: 200, // Adjust height as needed
-              child: Center(child: Text('Error: ${snapshot.error}')),
-            );
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Container(
-              height: 200, // Adjust height as needed
-              child: Center(child: Text('No address found.')),
-            );
-          }
-
-          var addressDetails = snapshot.data!;
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: SingleChildScrollView(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    topRight: Radius.circular(20),
-                  ),
-                ),
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "FARMER'S FARM LOCATION",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.location_on, color: Colors.blue, size: 20),
-                        SizedBox(width: 8), // Space between icon and text
-                        Expanded(
-                          child: Wrap(
-                            children: [
-                              Text(
-                                '${addressDetails['street']}, ${addressDetails['barangay']}, ${addressDetails['municipality']}, Albay, Philippines',
-                                style: TextStyle(fontSize: 16, color: Colors.black),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-                    if (addressDetails['imageUrl'] != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.network(
-                          addressDetails['imageUrl'],
-                          height: 150,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
-}
-
-class SearchBar extends StatefulWidget {
-  @override
-  _SearchBarState createState() => _SearchBarState();
-}
-
-class _SearchBarState extends State<SearchBar> {
-  final TextEditingController _controller = TextEditingController();
-  final StreamController<String> _searchStreamController = StreamController<String>();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _searchStreamController.close();
-    super.dispose();
-  }
-
-  void _onSearchChanged(String query) {
-    _searchStreamController.add(query);
-  }
-
-  Stream<List<Map<String, dynamic>>> _search(String query) async* {
-    if (query.isEmpty) {
-      yield [];
-    } else {
-      final userResults = await FirebaseFirestore.instance
-          .collection('users')
-          .where('firstName', isGreaterThanOrEqualTo: query)
-          .where('firstName', isLessThanOrEqualTo: query + '\uf8ff')
-          .get();
-
-      final productResults = await FirebaseFirestore.instance
-          .collection('products')
-          .where('productName', isGreaterThanOrEqualTo: query)
-          .where('productName', isLessThanOrEqualTo: query + '\uf8ff')
-          .get();
-
-      final municipalityResults = await FirebaseFirestore.instance
-          .collection('addresses')
-          .where('municipality', isGreaterThanOrEqualTo: query)
-          .where('municipality', isLessThanOrEqualTo: query + '\uf8ff')
-          .get();
-
-      final combinedResults = [
-        ...userResults.docs.map((doc) => {
-              'type': 'user',
-              'firstName': doc['firstName'],
-              'lastName': doc['lastName'],
-            }),
-        ...productResults.docs.map((doc) => {
-              'type': 'product',
-              'productName': doc['productName'],
-            }),
-        ...municipalityResults.docs.map((doc) => {
-              'type': 'municipality',
-              'municipality': doc['municipality'],
-            }),
-      ];
-
-      yield combinedResults;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            controller: _controller,
-            onChanged: _onSearchChanged,
-            decoration: InputDecoration(
-              hintText: 'Search here',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.black),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.black),
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            ),
-          ),
-        ),
-        StreamBuilder<String>(
-          stream: _searchStreamController.stream,
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return FutureBuilder<Map<String, dynamic>>(
+          future: _fetchAddressDetails(userId),
           builder: (context, snapshot) {
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Container(); // Hide suggestions when search query is empty
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                height: 200, // Adjust height as needed
+                child: Center(child: CircularProgressIndicator(color: Colors.green)),
+              );
             }
 
-            return StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _search(snapshot.data!),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator(color: Colors.green));
-                }
+            if (snapshot.hasError) {
+              return Container(
+                height: 200, // Adjust height as needed
+                child: Center(child: Text('Error: ${snapshot.error}')),
+              );
+            }
 
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Container(
+                height: 200, // Adjust height as needed
+                child: Center(child: Text('No address found.')),
+              );
+            }
 
-                final results = snapshot.data ?? [];
-                if (results.isEmpty) {
-                  return Center(child: Text('No results found'));
-                }
-
-                return ListView.builder(
-                  shrinkWrap: true, // Limit the height of ListView
-                  itemCount: results.length,
-                  itemBuilder: (context, index) {
-                    final result = results[index];
-                    if (result['type'] == 'user') {
-                      return ListTile(
-                        title: Text('${result['firstName']} ${result['lastName']}'),
-                        onTap: () {
-                          // Handle user tap
-                        },
-                      );
-                    } else if (result['type'] == 'product') {
-                      return ListTile(
-                        title: Text(result['productName']),
-                        onTap: () {
-                          // Handle product tap
-                        },
-                      );
-                    } else {
-                      return ListTile(
-                        title: Text(result['municipality']),
-                        onTap: () {
-                          // Handle municipality tap
-                        },
-                      );
-                    }
-                  },
-                );
-              },
+            var addressDetails = snapshot.data!;
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "FARMER'S FARM LOCATION",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.location_on, color: Colors.blue, size: 20),
+                          SizedBox(width: 8), // Space between icon and text
+                          Expanded(
+                            child: Wrap(
+                              children: [
+                                Text(
+                                  '${addressDetails['street']}, ${addressDetails['barangay']}, ${addressDetails['municipality']}, Albay, Philippines',
+                                  style: TextStyle(fontSize: 16, color: Colors.black),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      if (addressDetails['imageUrl'] != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.network(
+                            addressDetails['imageUrl'],
+                            height: 150,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
             );
           },
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -548,6 +464,20 @@ class ProductCard extends StatelessWidget {
         print("Error checking user bid: $e");
         return false;
       }
+    }
+    return false;
+  }
+
+  Future<bool> _isBiddingClosed(String productId) async {
+    try {
+      DocumentSnapshot productDoc =
+          await FirebaseFirestore.instance.collection('products').doc(productId).get();
+      if (productDoc.exists) {
+        var productData = productDoc.data() as Map<String, dynamic>;
+        return productData.containsKey('winningBidId') && productData['winningBidId'].isNotEmpty;
+      }
+    } catch (e) {
+      print("Error checking product bidding status: $e");
     }
     return false;
   }
@@ -655,45 +585,75 @@ class ProductCard extends StatelessWidget {
                     ),
                     SizedBox(height: 8),
                     FutureBuilder<bool>(
-                      future: _hasUserPlacedBid(productId),
+                      future: _isBiddingClosed(productId),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return Center(child: CircularProgressIndicator(color: Colors.green));
                         }
-                        if (snapshot.hasError || !snapshot.data!) {
-                          // Show offer bid button if there's an error or user has not bid
-                          return Container(
-                            width: double.infinity,
-                            height: 30,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                _showOfferBidModal(context, productId, minAmount);
-                              },
-                              child: Text(
-                                'OFFER BID',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.zero,
-                                ),
-                              ),
-                            ),
+                        if (snapshot.hasError || snapshot.data == false) {
+                          // Check if user has already placed a bid
+                          return FutureBuilder<bool>(
+                            future: _hasUserPlacedBid(productId),
+                            builder: (context, bidSnapshot) {
+                              if (bidSnapshot.connectionState == ConnectionState.waiting) {
+                                return Center(child: CircularProgressIndicator(color: Colors.green));
+                              }
+                              if (bidSnapshot.hasError || !bidSnapshot.data!) {
+                                // Show offer bid button if there's an error or user has not bid
+                                return Container(
+                                  width: double.infinity,
+                                  height: 30,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      _showOfferBidModal(context, productId, minAmount);
+                                    },
+                                    child: Text(
+                                      'OFFER BID',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.zero,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                // Show a disabled button or alternative text indicating bid placed
+                                return Container(
+                                  width: double.infinity,
+                                  height: 30,
+                                  child: ElevatedButton(
+                                    onPressed: null,
+                                    child: Text(
+                                      'BID PLACED',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.grey,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.zero,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
                           );
                         } else {
-                          // Show a disabled button or alternative text indicating bid placed
+                          // Show Closed/Expired button if bidding is closed
                           return Container(
                             width: double.infinity,
                             height: 30,
                             child: ElevatedButton(
                               onPressed: null,
                               child: Text(
-                                'BID PLACED',
-                                style: TextStyle(color: Colors.white),
+                                'BIDDING CLOSED',
+                                style: TextStyle(color: Colors.red[400]),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey,
+                                backgroundColor: Colors.red,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.zero,
                                 ),
@@ -712,7 +672,6 @@ class ProductCard extends StatelessWidget {
       ),
     );
   }
-}
 
 void _showOfferBidModal(BuildContext context, String productId, double minAmount) {
   TextEditingController _bidAmountController = TextEditingController();
@@ -883,4 +842,5 @@ void _showOfferBidModal(BuildContext context, String productId, double minAmount
       );
     },
   );
+}
 }

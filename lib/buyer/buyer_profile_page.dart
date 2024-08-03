@@ -15,17 +15,13 @@ class BuyerProfilePage extends StatefulWidget {
 }
 
 class _BuyerProfilePageState extends State<BuyerProfilePage> {
-  int _selectedIndex = 2; // Set default index to Profile
-  int _selectedButtonIndex = 0; // For the selectable buttons (Posts and Images)
+  int _selectedIndex = 2; 
+  int _selectedButtonIndex = 0; 
   int _unreadNotifications = 0;
 
-  // Firebase Auth instance
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  // Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // User data
   Map<String, dynamic>? _userData;
   List<Map<String, dynamic>> _userPosts = [];
   List<String> _userImages = [];
@@ -109,7 +105,6 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
 
   void _onItemTapped(int index) async {
     if (index == 1) {
-      // Navigating to notifications, mark them as read
       await FirebaseFirestore.instance
           .collection('users')
           .doc(FirebaseAuth.instance.currentUser!.uid)
@@ -123,7 +118,6 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
       });
 
       setState(() {
-        _unreadNotifications = 0; // Reset unread notifications count
       });
     }
 
@@ -145,7 +139,6 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
         );
         break;
       case 2:
-        // Current page, do nothing
         break;
       default:
         break;
@@ -159,8 +152,6 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
   }
 
   void _updateProfileImage() async {
-    // Implement the logic to update profile image and upload it to Firestore
-    // Update _userData['profileImage'] and call setState to refresh the UI
   }
 
   @override
@@ -172,7 +163,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context); // Navigate back to the previous screen
+            Navigator.pop(context); 
           },
         ),
         actions: [
@@ -183,7 +174,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            backgroundColor: Colors.white, // Set the background color of the modal
+            backgroundColor: Colors.white, 
             title: Text("Logout"),
             content: Text("Are you sure you want to logout?"),
             actions: [
@@ -193,7 +184,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                 },
                 child: Text("No"),
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.red, // Set the color for 'No' button
+                  foregroundColor: Colors.red, 
                 ),
               ),
               TextButton(
@@ -204,7 +195,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                 },
                 child: Text("Yes"),
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.green, // Set the color for 'Yes' button
+                  foregroundColor: Colors.green, 
                 ),
               ),
             ],
@@ -230,12 +221,12 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                     Stack(
                       children: [
                         Container(
-                          height: 220, // Increased height to accommodate button placement
+                          height: 220, 
                           color: Colors.green,
                         ),
                         Positioned(
-                          top: 16, // Adjusted top position
-                          left: -23, // Adjusted left position
+                          top: 16,
+                          left: -23, 
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: TextButton(
@@ -353,7 +344,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                               _buildSelectableButton('Images', 1, Icons.image),
                             ],
                           ),
-                          Divider(thickness: 2), // Add a long line below the buttons
+                          Divider(thickness: 2), 
                           SizedBox(height: 16),
                           Text(
                             'Details',
@@ -418,7 +409,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                                     ),
                                   ),
                                 ),
-                                Divider(thickness: 2), // Add a long line below the Edit Details button
+                                Divider(thickness: 2), 
                                 if (_selectedButtonIndex == 0) ...[
                                   Text(
                                     'Posts',
@@ -443,7 +434,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                                       ),
                                     ),
                                   ),
-                                  SizedBox(height: 10), // Add space between the title and the images
+                                  SizedBox(height: 10), 
                                   GridView.builder(
                                     shrinkWrap: true,
                                     physics: NeverScrollableScrollPhysics(),
