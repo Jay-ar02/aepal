@@ -285,6 +285,7 @@ class _BuyerPageState extends State<BuyerPage> {
                             timeDuration: product['timeDuration'],
                             productId: productId,
                             ownerId: userId,
+                            productStatus: product['status'], // Pass product status to the ProductCard
                             onAddressTap: () {
                               _showAddressModal(context, userId);
                             },
@@ -433,6 +434,7 @@ class ProductCard extends StatelessWidget {
   final String timeDuration;
   final String productId;
   final String ownerId;
+  final String productStatus; // Add product status to the ProductCard
   final VoidCallback onAddressTap;
 
   const ProductCard({
@@ -446,6 +448,7 @@ class ProductCard extends StatelessWidget {
     required this.timeDuration,
     required this.productId,
     required this.ownerId,
+    required this.productStatus, // Add product status to the ProductCard
     required this.onAddressTap,
   });
 
@@ -487,9 +490,9 @@ class ProductCard extends StatelessWidget {
     TextStyle smallFontSize = TextStyle(fontSize: 12);
 
     return SizedBox(
-      height: 270, // Adjust this height as needed
+      height: 270, 
       child: Card(
-        color: Colors.grey[100], // Set the card color to light gray
+        color: Colors.grey[100], 
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
         ),
@@ -528,7 +531,6 @@ class ProductCard extends StatelessWidget {
                                         style: TextStyle(
                                           fontStyle: FontStyle.italic,
                                           color: Colors.blue,
-                                          // decoration: TextDecoration.underline, // Optional
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -591,58 +593,74 @@ class ProductCard extends StatelessWidget {
                           return Center(child: CircularProgressIndicator(color: Colors.green));
                         }
                         if (snapshot.hasError || snapshot.data == false) {
-                          // Check if user has already placed a bid
-                          return FutureBuilder<bool>(
-                            future: _hasUserPlacedBid(productId),
-                            builder: (context, bidSnapshot) {
-                              if (bidSnapshot.connectionState == ConnectionState.waiting) {
-                                return Center(child: CircularProgressIndicator(color: Colors.green));
-                              }
-                              if (bidSnapshot.hasError || !bidSnapshot.data!) {
-                                // Show offer bid button if there's an error or user has not bid
-                                return Container(
-                                  width: double.infinity,
-                                  height: 30,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      _showOfferBidModal(context, productId, minAmount);
-                                    },
-                                    child: Text(
-                                      'OFFER BID',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.zero,
+                          if (productStatus == 'BIDDING SOON') {
+                            return Container(
+                              width: double.infinity,
+                              height: 30,
+                              child: ElevatedButton(
+                                onPressed: null,
+                                child: Text(
+                                  'BIDDING SOON',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                ),
+                              ),
+                            );
+                          } else {
+                            return FutureBuilder<bool>(
+                              future: _hasUserPlacedBid(productId),
+                              builder: (context, bidSnapshot) {
+                                if (bidSnapshot.connectionState == ConnectionState.waiting) {
+                                  return Center(child: CircularProgressIndicator(color: Colors.green));
+                                }
+                                if (bidSnapshot.hasError || !bidSnapshot.data!) {
+                                  return Container(
+                                    width: double.infinity,
+                                    height: 30,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        _showOfferBidModal(context, productId, minAmount);
+                                      },
+                                      child: Text(
+                                        'OFFER BID',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              } else {
-                                // Show a disabled button or alternative text indicating bid placed
-                                return Container(
-                                  width: double.infinity,
-                                  height: 30,
-                                  child: ElevatedButton(
-                                    onPressed: null,
-                                    child: Text(
-                                      'BID PLACED',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.grey,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.zero,
+                                  );
+                                } else {
+                                  return Container(
+                                    width: double.infinity,
+                                    height: 30,
+                                    child: ElevatedButton(
+                                      onPressed: null,
+                                      child: Text(
+                                        'BID PLACED',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.grey,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              }
-                            },
-                          );
+                                  );
+                                }
+                              },
+                            );
+                          }
                         } else {
-                          // Show Closed/Expired button if bidding is closed
                           return Container(
                             width: double.infinity,
                             height: 30,

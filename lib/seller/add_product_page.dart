@@ -6,9 +6,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'add_address_page.dart'; // Import the AddAddressPage
-import 'edit_address_page.dart'; // Import the EditAddressPage
-import 'seller_page.dart'; // Import the SellerPage
+import 'add_address_page.dart'; 
+import 'edit_address_page.dart'; 
+import 'seller_page.dart'; 
 
 class AddProductPage extends StatefulWidget {
   @override
@@ -20,9 +20,10 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _availableKilosController = TextEditingController();
   final TextEditingController _minAmountController = TextEditingController();
   String? _timeDuration;
+  String _productStatus = 'BIDDING SOON'; // Add product status field
   File? _image;
   final ImagePicker _picker = ImagePicker();
-  String _addressText = "Street, Barangay, Municipality"; // Default placeholder text
+  String _addressText = "Street, Barangay, Municipality"; 
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -62,9 +63,9 @@ class _AddProductPageState extends State<AddProductPage> {
           'availableKilos': int.parse(_availableKilosController.text),
           'minAmount': double.parse(_minAmountController.text),
           'timeDuration': _timeDuration,
+          'status': _productStatus, // Add product status field
           'imageUrl': imageUrl,
         });
-        // Navigate to SellerPage after posting the product
         Navigator.pushReplacementNamed(context, '/sellerPage');
       } catch (e) {
         print('Error adding product: $e');
@@ -78,14 +79,14 @@ class _AddProductPageState extends State<AddProductPage> {
   void _navigateToAddAddress() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddAddressPage()), // Navigate to AddAddressPage
+      MaterialPageRoute(builder: (context) => AddAddressPage()), 
     );
   }
 
   void _navigateToEditAddress() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => EditAddressPage()), // Navigate to EditAddressPage
+      MaterialPageRoute(builder: (context) => EditAddressPage()), 
     );
   }
 
@@ -201,11 +202,11 @@ class _AddProductPageState extends State<AddProductPage> {
                     ),
                   ),
                   TextButton(
-                    onPressed: _navigateToEditAddress, // Navigate to EditAddressPage
+                    onPressed: _navigateToEditAddress, 
                     child: Text(
                       'Edit',
                       style: TextStyle(
-                        color: Colors.green, // Set the color to green
+                        color: Colors.green, 
                       ),
                     ),
                   ),
@@ -345,6 +346,33 @@ class _AddProductPageState extends State<AddProductPage> {
                 });
               },
             ),
+            SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              style: TextStyle(color: Colors.black),
+              decoration: InputDecoration(
+                labelText: 'Product Status',
+                labelStyle: TextStyle(color: Colors.black),
+                border: OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.black),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.black),
+                ),
+              ),
+              value: _productStatus,
+              items: ['BIDDING SOON', 'OPEN FOR BIDDING']
+                  .map((status) => DropdownMenuItem(
+                        value: status,
+                        child: Text(status),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _productStatus = value!;
+                });
+              },
+            ),
             SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -383,9 +411,9 @@ void main() {
   runApp(MaterialApp(
     home: AddProductPage(),
     routes: {
-      '/sellerPage': (context) => SellerPage(), // Ensure the SellerPage route is defined
-      '/addAddressPage': (context) => AddAddressPage(), // Ensure the AddAddressPage route is defined
-      '/editAddressPage': (context) => EditAddressPage(), // Ensure the EditAddressPage route is defined
+      '/sellerPage': (context) => SellerPage(), 
+      '/addAddressPage': (context) => AddAddressPage(), 
+      '/editAddressPage': (context) => EditAddressPage(), 
     },
   ));
 }

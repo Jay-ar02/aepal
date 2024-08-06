@@ -5,8 +5,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'add_product_page.dart';
 import 'seller_notification_page.dart';
-import 'seller_profile_page.dart'; // Import the profile page
-import 'view_bidders_page.dart'; // Import the view bidders page
+import 'seller_profile_page.dart'; 
+import 'view_bidders_page.dart'; 
+import 'edit_product_page.dart'; 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -42,7 +43,7 @@ class _SellerPageState extends State<SellerPage> {
         final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         final firstName = doc['firstName'] ?? 'Unknown';
         final lastName = doc['lastName'] ?? 'Seller';
-        return '$firstName $lastName'; // Combine firstName and lastName
+        return '$firstName $lastName';
       } catch (e) {
         print("Error fetching user data: $e");
         return 'Unknown Seller';
@@ -90,7 +91,6 @@ class _SellerPageState extends State<SellerPage> {
           Navigator.pushReplacementNamed(context, '/sellerNotifications');
           break;
         case 2:
-          // Check if the current route is already SellerProfilePage, if not, navigate to it
           if (!ModalRoute.of(context)!.settings.name!.contains('/sellerProfile')) {
             Navigator.pushNamed(context, '/sellerProfile');
           }
@@ -110,36 +110,94 @@ class _SellerPageState extends State<SellerPage> {
   }
 
   void _showDeleteConfirmationDialog(BuildContext context, String productId) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Delete Product'),
-          content: Text('Are you sure you want to delete this product?'),
-          actions: <Widget>[
-            TextButton(
-              child: Text('No'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text(
+          'Delete Product',
+          style: TextStyle(color: Colors.black),
+        ),
+        content: Text(
+          'Are you sure you want to delete this product?',
+          style: TextStyle(color: Colors.black),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text(
+              'No',
+              style: TextStyle(color: Colors.red),
             ),
-            TextButton(
-              child: Text('Yes'),
-              onPressed: () {
-                _deleteProduct(productId);
-                Navigator.of(context).pop();
-              },
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: Text(
+              'Yes',
+              style: TextStyle(color: Colors.green),
             ),
-          ],
-        );
-      },
-    );
-  }
+            onPressed: () {
+              _deleteProduct(productId);
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+  void _showProductOptionsDialog(BuildContext context, String productId, Map<String, dynamic> productData) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text(
+          'Product Options',
+          style: TextStyle(color: Colors.black),
+        ),
+        content: Text(
+          'What would you like to do with this product?',
+          style: TextStyle(color: Colors.black),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text(
+              'Edit',
+              style: TextStyle(color: Colors.blue),
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditProductPage(productId: productId, productData: productData),
+                ),
+              );
+            },
+          ),
+          TextButton(
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Colors.red),
+            ),
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showDeleteConfirmationDialog(context, productId);
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
 
   Future<void> _refreshProducts() async {
-    // Simulate a network call
     await Future.delayed(Duration(seconds: 2));
-    setState(() {}); // Refresh the state to reload products
+    setState(() {});
   }
 
   @override
@@ -152,9 +210,7 @@ class _SellerPageState extends State<SellerPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list),
-            onPressed: () {
-              // Handle filter action
-            },
+            onPressed: () {},
           ),
           IconButton(
             icon: Icon(Icons.add),
@@ -210,7 +266,7 @@ class _SellerPageState extends State<SellerPage> {
                       return StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('products')
-                            .where('userId', isEqualTo: userId) // Filter by userId
+                            .where('userId', isEqualTo: userId) 
                             .snapshots(),
                         builder: (context, productSnapshot) {
                           if (productSnapshot.connectionState == ConnectionState.waiting) {
@@ -233,6 +289,7 @@ class _SellerPageState extends State<SellerPage> {
                               var product = products[index];
                               var productId = product.id;
                               var userId = product['userId'] ?? '';
+                              var productData = product.data() as Map<String, dynamic>;
 
                               return FutureBuilder<Map<String, String>>(
                                 future: _fetchSellerDetails(userId),
@@ -250,6 +307,7 @@ class _SellerPageState extends State<SellerPage> {
                                     location: product['address'],
                                     availableKgs: product['availableKilos'],
                                     timeDuration: product['timeDuration'],
+                                    productStatus: product['status'], // Add product status to the ProductCard
                                     onPressed: () {
                                       Navigator.pushNamed(
                                         context,
@@ -258,7 +316,7 @@ class _SellerPageState extends State<SellerPage> {
                                       );
                                     },
                                     onLongPress: () {
-                                      _showDeleteConfirmationDialog(context, productId);
+                                      _showProductOptionsDialog(context, productId, productData);
                                     },
                                   );
                                 },
@@ -382,7 +440,7 @@ class _SearchBarState extends State<SearchBar> {
           stream: _searchStreamController.stream,
           builder: (context, snapshot) {
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Container(); // Hide suggestions when search query is empty
+              return Container();
             }
 
             return StreamBuilder<List<Map<String, dynamic>>>(
@@ -402,7 +460,7 @@ class _SearchBarState extends State<SearchBar> {
                 }
 
                 return ListView.builder(
-                  shrinkWrap: true, // Limit the height of ListView
+                  shrinkWrap: true,
                   itemCount: results.length,
                   itemBuilder: (context, index) {
                     final result = results[index];
@@ -410,17 +468,13 @@ class _SearchBarState extends State<SearchBar> {
                       return ListTile(
                         title: Text('${result['firstName']} ${result['lastName']}'),
                         subtitle: Text('User ID: ${result['uid']}'),
-                        onTap: () {
-                          // Handle user tap
-                        },
+                        onTap: () {},
                       );
                     } else {
                       return ListTile(
                         title: Text(result['productName']),
                         subtitle: Text('Product ID: ${result['productId']}'),
-                        onTap: () {
-                          // Handle product tap
-                        },
+                        onTap: () {},
                       );
                     }
                   },
@@ -443,6 +497,7 @@ class ProductCard extends StatelessWidget {
   final String location;
   final int availableKgs;
   final String timeDuration;
+  final String productStatus; // Add product status to the ProductCard
   final VoidCallback onPressed;
   final VoidCallback onLongPress;
 
@@ -455,6 +510,7 @@ class ProductCard extends StatelessWidget {
     required this.location,
     required this.availableKgs,
     required this.timeDuration,
+    required this.productStatus, // Add product status to the ProductCard
     required this.onPressed,
     required this.onLongPress,
   });
@@ -553,13 +609,13 @@ class ProductCard extends StatelessWidget {
                         width: double.infinity,
                         height: 30,
                         child: ElevatedButton(
-                          onPressed: onPressed,
+                          onPressed: productStatus == 'BIDDING SOON' ? null : onPressed,
                           child: Text(
-                            'VIEW BIDDERS',
+                            productStatus == 'BIDDING SOON' ? 'BIDDING SOON' : 'VIEW BIDDERS',
                             style: TextStyle(color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor: productStatus == 'BIDDING SOON' ? Colors.grey : Colors.green,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.zero,
                             ),
@@ -577,3 +633,4 @@ class ProductCard extends StatelessWidget {
     );
   }
 }
+
