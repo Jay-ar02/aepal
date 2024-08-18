@@ -312,7 +312,9 @@ class _BuyerPageState extends State<BuyerPage> {
                             location: product['address'],
                             availableKgs: product['availableKilos'],
                             minAmount: product['minAmount'],
-                            endTime: DateTime.parse(product['timeDuration']),
+                            endTime: product['timeDuration'] != null
+                                ? DateTime.parse(product['timeDuration'])
+                                : null,
                             productId: productId,
                             ownerId: userId,
                             productStatus: product['status'],
@@ -466,7 +468,7 @@ class ProductCard extends StatefulWidget {
   final String location;
   final int availableKgs;
   final double minAmount;
-  final DateTime endTime;
+  final DateTime? endTime;  // Updated to handle null value
   final String productId;
   final String ownerId;
   final String productStatus;
@@ -480,7 +482,7 @@ class ProductCard extends StatefulWidget {
     required this.location,
     required this.availableKgs,
     required this.minAmount,
-    required this.endTime,
+    this.endTime,  // Updated to handle null value
     required this.productId,
     required this.ownerId,
     required this.productStatus,
@@ -505,10 +507,9 @@ class _ProductCardState extends State<ProductCard> {
     TextStyle smallFontSize = TextStyle(fontSize: 12);
 
     final now = DateTime.now();
-    final duration = widget.endTime.difference(now);
+    final duration = widget.endTime != null ? widget.endTime!.difference(now) : Duration.zero;
 
     final user = FirebaseAuth.instance.currentUser;
-
     bool isOwner = user != null && user.uid == widget.ownerId;
 
     return SizedBox(
@@ -617,23 +618,28 @@ class _ProductCardState extends State<ProductCard> {
                           'Time Remaining: ',
                           style: smallFontSize.copyWith(color: Colors.black),
                         ),
-                        StreamBuilder<int>(
-                          stream: _countdownStream(duration),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData || snapshot.data! <= 0) {
-                              return Text(
-                                '00:00:00',
-                                style: smallFontSize.copyWith(color: Colors.red),
-                              );
-                            } else {
-                              final remainingDuration = Duration(seconds: snapshot.data!);
-                              return Text(
-                                _formatDuration(remainingDuration),
-                                style: smallFontSize.copyWith(color: Colors.red),
-                              );
-                            }
-                          },
-                        ),
+                        widget.endTime != null
+                            ? StreamBuilder<int>(
+                                stream: _countdownStream(duration),
+                                builder: (context, snapshot) {
+                                  if (!snapshot.hasData || snapshot.data! <= 0) {
+                                    return Text(
+                                      '00:00:00',
+                                      style: smallFontSize.copyWith(color: Colors.red),
+                                    );
+                                  } else {
+                                    final remainingDuration = Duration(seconds: snapshot.data!);
+                                    return Text(
+                                      _formatDuration(remainingDuration),
+                                      style: smallFontSize.copyWith(color: Colors.red),
+                                    );
+                                  }
+                                },
+                              )
+                            : Text(
+                                'Disabled',
+                                style: smallFontSize.copyWith(color: Colors.grey),
+                              ),
                       ],
                     ),
                     SizedBox(height: 4),

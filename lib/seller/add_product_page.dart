@@ -6,9 +6,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'add_address_page.dart'; 
-import 'edit_address_page.dart'; 
-import 'seller_page.dart'; 
+import 'add_address_page.dart';
+import 'edit_address_page.dart';
+import 'seller_page.dart';
 
 class AddProductPage extends StatefulWidget {
   @override
@@ -19,11 +19,12 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _productNameController = TextEditingController();
   final TextEditingController _availableKilosController = TextEditingController();
   final TextEditingController _minAmountController = TextEditingController();
-  int? _timeDurationHours;  // Changed to int to represent hours
-  String _productStatus = 'BIDDING SOON'; 
+  int? _timeDurationHours;
+  bool _isTimerEnabled = true; // Added to manage timer enable/disable
+  String _productStatus = 'BIDDING SOON';
   File? _image;
   final ImagePicker _picker = ImagePicker();
-  String _addressText = "Street, Barangay, Municipality"; 
+  String _addressText = "Street, Barangay, Municipality";
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -51,23 +52,34 @@ class _AddProductPageState extends State<AddProductPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
+        final productName = _productNameController.text.isNotEmpty ? _productNameController.text : 'Unknown Product';
+        final availableKilos = _availableKilosController.text.isNotEmpty ? int.parse(_availableKilosController.text) : 0;
+        final minAmount = _minAmountController.text.isNotEmpty ? double.parse(_minAmountController.text) : 0.0;
+        final address = _addressText.isNotEmpty ? _addressText : 'Unknown Address';
+
         String? imageUrl;
         if (_image != null) {
           imageUrl = await _uploadImage(_image!);
         }
 
-        DateTime endTime = DateTime.now().add(Duration(hours: _timeDurationHours!));
+        DateTime? endTime;
+        if (_isTimerEnabled && _timeDurationHours != null) {
+          endTime = DateTime.now().add(Duration(hours: _timeDurationHours!));
+        } else {
+          endTime = null;
+        }
 
         await FirebaseFirestore.instance.collection('products').add({
           'userId': user.uid,
-          'productName': _productNameController.text,
-          'address': _addressText,
-          'availableKilos': int.parse(_availableKilosController.text),
-          'minAmount': double.parse(_minAmountController.text),
-          'timeDuration': endTime.toIso8601String(),  // Store the end time as a DateTime string
+          'productName': productName,
+          'address': address,
+          'availableKilos': availableKilos,
+          'minAmount': minAmount,
+          'timeDuration': endTime?.toIso8601String(),
           'status': _productStatus,
-          'imageUrl': imageUrl,
+          'imageUrl': imageUrl ?? 'https://via.placeholder.com/150',
         });
+
         Navigator.pushReplacementNamed(context, '/sellerPage');
       } catch (e) {
         print('Error adding product: $e');
@@ -81,14 +93,14 @@ class _AddProductPageState extends State<AddProductPage> {
   void _navigateToAddAddress() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddAddressPage()), 
+      MaterialPageRoute(builder: (context) => AddAddressPage()),
     );
   }
 
   void _navigateToEditAddress() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => EditAddressPage()), 
+      MaterialPageRoute(builder: (context) => EditAddressPage()),
     );
   }
 
@@ -204,11 +216,11 @@ class _AddProductPageState extends State<AddProductPage> {
                     ),
                   ),
                   TextButton(
-                    onPressed: _navigateToEditAddress, 
+                    onPressed: _navigateToEditAddress,
                     child: Text(
                       'Edit',
                       style: TextStyle(
-                        color: Colors.green, 
+                        color: Colors.green,
                       ),
                     ),
                   ),
@@ -322,30 +334,86 @@ class _AddProductPageState extends State<AddProductPage> {
               keyboardType: TextInputType.number,
             ),
             SizedBox(height: 16),
-            DropdownButtonFormField<int>(
-              style: TextStyle(color: Colors.black),
-              decoration: InputDecoration(
-                labelText: 'Time Duration (hours)',
-                labelStyle: TextStyle(color: Colors.black),
-                border: OutlineInputBorder(),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<bool>(
+                    style: TextStyle(color: Colors.black),
+                    decoration: InputDecoration(
+                      labelText: 'Enable Timer',
+                      labelStyle: TextStyle(color: Colors.black),
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                    ),
+                    value: _isTimerEnabled,
+                    items: [
+                      DropdownMenuItem<bool>(
+                        value: true,
+                        child: Text('Enable'),
+                      ),
+                      DropdownMenuItem<bool>(
+                        value: false,
+                        child: Text('Disable'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _isTimerEnabled = value!;
+                        if (!_isTimerEnabled) {
+                          _timeDurationHours = null; // Reset time duration when disabled
+                        }
+                      });
+                    },
+                  ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black),
+                SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    style: TextStyle(color: Colors.black),
+                    decoration: InputDecoration(
+                      labelText: 'Time Duration (hours)',
+                      labelStyle: TextStyle(color: Colors.black),
+                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black),
+                      ),
+                    ),
+                    items: List.generate(12, (index) => index + 1)
+                        .map((duration) => DropdownMenuItem<int>(
+                              value: duration,
+                              child: Text('$duration hours'),
+                            ))
+                        .toList(),
+                    onChanged: _isTimerEnabled
+                        ? (value) {
+                            setState(() {
+                              _timeDurationHours = value;
+                            });
+                          }
+                        : null,
+                    value: _timeDurationHours,
+                    isExpanded: true,
+                    hint: Text(
+                      _isTimerEnabled
+                          ? 'Select Duration'
+                          : 'Disabled',
+                      style: TextStyle(color: _isTimerEnabled ? Colors.black : Colors.grey),
+                    ),
+                    disabledHint: Text(
+                      'Disabled',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
                 ),
-              ),
-              items: List.generate(12, (index) => index + 1)
-                  .map((duration) => DropdownMenuItem<int>(
-                        value: duration,
-                        child: Text('$duration hours'),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _timeDurationHours = value;
-                });
-              },
+              ],
             ),
             SizedBox(height: 16),
             DropdownButtonFormField<String>(
@@ -412,9 +480,9 @@ void main() {
   runApp(MaterialApp(
     home: AddProductPage(),
     routes: {
-      '/sellerPage': (context) => SellerPage(), 
-      '/addAddressPage': (context) => AddAddressPage(), 
-      '/editAddressPage': (context) => EditAddressPage(), 
+      '/sellerPage': (context) => SellerPage(),
+      '/addAddressPage': (context) => AddAddressPage(),
+      '/editAddressPage': (context) => EditAddressPage(),
     },
   ));
 }

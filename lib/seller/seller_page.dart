@@ -342,7 +342,9 @@ class _SellerPageState extends State<SellerPage> {
                                     location: product['address'],
                                     availableKgs: product['availableKilos'],
                                     minAmount: product['minAmount'],
-                                    endTime: DateTime.parse(product['timeDuration']),
+                                    endTime: product['timeDuration'] != null
+                                        ? DateTime.parse(product['timeDuration'])
+                                        : null,
                                     productStatus: product['status'],
                                     onPressed: () {
                                       Navigator.pushNamed(
@@ -546,7 +548,7 @@ class ProductCard extends StatelessWidget {
   final String location;
   final int availableKgs;
   final double minAmount;
-  final DateTime endTime;
+  final DateTime? endTime;  // Updated to handle null value
   final String productStatus;
   final VoidCallback onPressed;
   final VoidCallback onLongPress;
@@ -560,7 +562,7 @@ class ProductCard extends StatelessWidget {
     required this.location,
     required this.availableKgs,
     required this.minAmount,
-    required this.endTime,
+    this.endTime,
     required this.productStatus,
     required this.onPressed,
     required this.onLongPress,
@@ -570,7 +572,7 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     TextStyle smallFontSize = TextStyle(fontSize: 12);
     final now = DateTime.now();
-    final duration = endTime.difference(now);
+    final duration = endTime != null ? endTime!.difference(now) : Duration.zero;
 
     return GestureDetector(
       onLongPress: onLongPress,
@@ -651,23 +653,28 @@ class ProductCard extends StatelessWidget {
                             'Time Remaining: ',
                             style: smallFontSize.copyWith(color: Colors.black),
                           ),
-                          StreamBuilder<int>(
-                            stream: _countdownStream(duration),
-                            builder: (context, snapshot) {
-                              if (!snapshot.hasData || snapshot.data! <= 0) {
-                                return Text(
-                                  '00:00:00',
-                                  style: smallFontSize.copyWith(color: Colors.red),
-                                );
-                              } else {
-                                final remainingDuration = Duration(seconds: snapshot.data!);
-                                return Text(
-                                  _formatDuration(remainingDuration),
-                                  style: smallFontSize.copyWith(color: Colors.red),
-                                );
-                              }
-                            },
-                          ),
+                          endTime != null
+                              ? StreamBuilder<int>(
+                                  stream: _countdownStream(duration),
+                                  builder: (context, snapshot) {
+                                    if (!snapshot.hasData || snapshot.data! <= 0) {
+                                      return Text(
+                                        '00:00:00',
+                                        style: smallFontSize.copyWith(color: Colors.red),
+                                      );
+                                    } else {
+                                      final remainingDuration = Duration(seconds: snapshot.data!);
+                                      return Text(
+                                        _formatDuration(remainingDuration),
+                                        style: smallFontSize.copyWith(color: Colors.red),
+                                      );
+                                    }
+                                  },
+                                )
+                              : Text(
+                                  'Disabled',
+                                  style: smallFontSize.copyWith(color: Colors.grey),
+                                ),
                         ],
                       ),
                       SizedBox(height: 4),
