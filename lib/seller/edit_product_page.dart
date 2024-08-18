@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart'; // Import this package for date formatting
 import 'dart:io';
 
 class EditProductPage extends StatefulWidget {
@@ -22,12 +23,10 @@ class _EditProductPageState extends State<EditProductPage> {
   late TextEditingController _addressController;
   late TextEditingController _availableKilosController;
   late TextEditingController _minAmountController;
-  late TextEditingController _timeDurationController;
-  late TextEditingController _imageUrlController;
-  String? _timeDuration;
+  DateTime? _timeDuration;
   File? _image;
   final ImagePicker _picker = ImagePicker();
-  String _productStatus = 'BIDDING SOON'; // Add product status field
+  String _productStatus = 'BIDDING SOON';
 
   @override
   void initState() {
@@ -36,10 +35,8 @@ class _EditProductPageState extends State<EditProductPage> {
     _addressController = TextEditingController(text: widget.productData['address'] ?? '');
     _availableKilosController = TextEditingController(text: widget.productData['availableKilos']?.toString() ?? '0');
     _minAmountController = TextEditingController(text: widget.productData['minAmount']?.toString() ?? '0');
-    _timeDurationController = TextEditingController(text: widget.productData['timeDuration'] ?? '');
-    _imageUrlController = TextEditingController(text: widget.productData['imageUrl'] ?? '');
-    _timeDuration = widget.productData['timeDuration'];
-    _productStatus = widget.productData['status'] ?? 'BIDDING SOON'; // Initialize product status
+    _timeDuration = DateTime.parse(widget.productData['timeDuration']);  // Parse DateTime from the product data
+    _productStatus = widget.productData['status'] ?? 'BIDDING SOON';
   }
 
   @override
@@ -48,8 +45,6 @@ class _EditProductPageState extends State<EditProductPage> {
     _addressController.dispose();
     _availableKilosController.dispose();
     _minAmountController.dispose();
-    _timeDurationController.dispose();
-    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -89,8 +84,8 @@ class _EditProductPageState extends State<EditProductPage> {
         'address': _addressController.text,
         'availableKilos': int.parse(_availableKilosController.text),
         'minAmount': double.parse(_minAmountController.text),
-        'timeDuration': _timeDuration ?? '',
-        'status': _productStatus, // Update product status
+        'timeDuration': _timeDuration!.toIso8601String(), // Store the DateTime as a string
+        'status': _productStatus,
         'imageUrl': imageUrl ?? '',
       });
       Navigator.pop(context);
@@ -101,6 +96,61 @@ class _EditProductPageState extends State<EditProductPage> {
       );
     }
   }
+
+ Future<void> _selectDateTime(BuildContext context) async {
+  final DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: _timeDuration ?? DateTime.now(),
+    firstDate: DateTime.now(),
+    lastDate: DateTime(2101),
+    builder: (BuildContext context, Widget? child) {
+      return Theme(
+        data: ThemeData.light().copyWith(
+          colorScheme: ColorScheme.light(
+            primary: Color.fromARGB(255, 55, 143, 58), // Primary color for date picker (green)
+            onPrimary: Colors.white, // Text color for selected text
+            onSurface: Colors.black, // Text color for the surface
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              foregroundColor: Color.fromARGB(255, 55, 143, 58), // Button text color
+            ),
+          ),
+        ),
+        child: child!,
+      );
+    },
+  );
+
+  if (picked != null) {
+    final TimeOfDay? time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_timeDuration ?? DateTime.now()),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Color.fromARGB(255, 55, 143, 58), // Primary color for time picker (green)
+              onPrimary: Colors.white, // Text color for selected text
+              onSurface: Colors.black, // Text color for the surface
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Color.fromARGB(255, 55, 143, 58), // Button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (time != null) {
+      setState(() {
+        _timeDuration = DateTime(picked.year, picked.month, picked.day, time.hour, time.minute);
+      });
+    }
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -189,14 +239,9 @@ class _EditProductPageState extends State<EditProductPage> {
                             image: FileImage(_image!),
                             fit: BoxFit.cover,
                           )
-                        : (_imageUrlController.text.isNotEmpty
-                            ? DecorationImage(
-                                image: NetworkImage(_imageUrlController.text),
-                                fit: BoxFit.cover,
-                              )
-                            : null),
+                        : null,
                   ),
-                  child: _image == null && _imageUrlController.text.isEmpty
+                  child: _image == null && widget.productData['imageUrl'] == null
                       ? Center(
                           child: Icon(
                             Icons.image,
@@ -207,7 +252,7 @@ class _EditProductPageState extends State<EditProductPage> {
                       : null,
                 ),
               ),
-              if (_image == null && _imageUrlController.text.isEmpty)
+              if (_image == null && widget.productData['imageUrl'] == null)
                 Positioned(
                   bottom: 8,
                   child: Text(
@@ -275,32 +320,29 @@ class _EditProductPageState extends State<EditProductPage> {
             keyboardType: TextInputType.number,
           ),
           SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _timeDuration,
-            style: TextStyle(color: Colors.black),
-            decoration: InputDecoration(
-              labelText: 'Time Duration',
-              labelStyle: TextStyle(color: Colors.black),
-              border: OutlineInputBorder(),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.black),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.black),
+          GestureDetector(
+            onTap: () => _selectDateTime(context),
+            child: AbsorbPointer(
+              child: TextField(
+                style: TextStyle(color: Colors.black),
+                decoration: InputDecoration(
+                  labelText: 'Time Duration',
+                  labelStyle: TextStyle(color: Colors.black),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.black),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.black),
+                  ),
+                ),
+                controller: TextEditingController(
+                  text: _timeDuration != null
+                      ? DateFormat('yyyy-MM-dd HH:mm').format(_timeDuration!)
+                      : '',
+                ),
               ),
             ),
-            items: List.generate(
-              12,
-              (index) => (index + 1).toString() + (index + 1 == 1 ? 'hr' : 'hrs'),
-            ).map((duration) => DropdownMenuItem(
-              value: duration,
-              child: Text(duration),
-            )).toList(),
-            onChanged: (value) {
-              setState(() {
-                _timeDuration = value;
-              });
-            },
           ),
           SizedBox(height: 16),
           DropdownButtonFormField<String>(

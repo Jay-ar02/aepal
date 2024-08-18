@@ -17,11 +17,32 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
   List<DocumentSnapshot> _notifications = [];
   bool _loading = true;
   int _unreadCount = 0;
+  String? _firstName;
+  String? _profileImageUrl;
 
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
+    _fetchUserName();
+  }
+
+  Future<void> _fetchUserName() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        DocumentSnapshot userDoc =
+            await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          setState(() {
+            _firstName = userDoc['firstName'] ?? 'Profile';
+            _profileImageUrl = userDoc['profileImage'] ?? 'https://via.placeholder.com/150';
+          });
+        }
+      } catch (e) {
+        print("Error fetching user data: $e");
+      }
+    }
   }
 
   Future<void> _fetchNotifications() async {
@@ -36,8 +57,7 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
 
       setState(() {
         _notifications = notifications.docs;
-        _unreadCount =
-            notifications.docs.where((doc) => doc['read'] == false).length;
+        _unreadCount = notifications.docs.where((doc) => doc['read'] == false).length;
         _loading = false;
 
         // Mark all notifications as read when loaded
@@ -128,9 +148,9 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       backgroundColor: Colors.white,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-         backgroundColor: Colors.white,
+        backgroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -145,9 +165,7 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
               _unreadCount.toString(),
               style: const TextStyle(color: Colors.white),
             ),
-            badgeStyle: badges.BadgeStyle(
-              // backgroundColor: Colors.red,
-            ),
+            badgeStyle: badges.BadgeStyle(),
           ),
         ],
       ),
@@ -156,96 +174,137 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
           : RefreshIndicator(
               onRefresh: _fetchNotifications,
               color: Colors.green,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: _notifications.isEmpty
-                    ? Center(child: Text('No notifications available'))
-                    : ListView.builder(
-                        itemCount: _notifications.length,
-                        itemBuilder: (context, index) {
-                          final notification = _notifications[index];
-                          final productId = notification['productId'] ?? ''; // Handle missing field
-                          final timestamp = notification['timestamp'] as Timestamp?;
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Buyer Mode Container
+                  Container(
+                    width: double.infinity,
+                    color: Colors.green[100],
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.shopping_cart, color: Colors.green),
+                        SizedBox(width: 8),
+                        Text(
+                          'Buyer Mode',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                          return Dismissible(
-                            key: Key(notification.id),
-                            direction: DismissDirection.startToEnd,
-                            background: Container(
-                              color: Colors.red,
-                              alignment: Alignment.centerLeft,
-                              padding: EdgeInsets.symmetric(horizontal: 20.0),
-                              child: Icon(Icons.delete, color: Colors.white),
-                            ),
-                            confirmDismiss: (direction) async {
-                              return await showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                 return AlertDialog(
-  backgroundColor: Colors.white, // Set the background color of the modal
-  title: Text('Confirm'),
-  content: Text('Are you sure you want to delete this notification?'),
-  actions: <Widget>[
-    TextButton(
-      onPressed: () => Navigator.of(context).pop(false),
-      child: Text('CANCEL'),
-      style: TextButton.styleFrom(
-        foregroundColor: Colors.red, // Set the color for 'CANCEL' button
-      ),
-    ),
-    TextButton(
-      onPressed: () => Navigator.of(context).pop(true),
-      child: Text('DELETE'),
-      style: TextButton.styleFrom(
-        foregroundColor: Colors.green, // Set the color for 'DELETE' button
-      ),
-    ),
-  ],
-);
+                  // Notifications List
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _notifications.isEmpty
+                          ? Center(child: Text('No notifications available'))
+                          : ListView.builder(
+                              itemCount: _notifications.length,
+                              itemBuilder: (context, index) {
+                                final notification = _notifications[index];
+                                final productId = notification['productId'] ?? ''; // Handle missing field
+                                final timestamp = notification['timestamp'] as Timestamp?;
 
-                                },
-                              );
-                            },
-                            onDismissed: (direction) {
-                              _deleteNotification(notification);
-                            },
-                            child: FutureBuilder<Map<String, dynamic>>(
-                              future: _fetchProductAndOwner(productId, notification['message'] ?? '', timestamp ?? Timestamp.now()),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return Center(child: CircularProgressIndicator(color: Colors.green));
-                                } else if (snapshot.hasError) {
-                                  return Center(child: Text('Error fetching product data'));
-                                } else if (!snapshot.hasData || snapshot.data == null) {
-                                  return Center(child: Text('Product data not found'));
-                                }
+                                return Dismissible(
+                                  key: Key(notification.id),
+                                  direction: DismissDirection.startToEnd,
+                                  background: Container(
+                                    color: Colors.red,
+                                    alignment: Alignment.centerLeft,
+                                    padding: EdgeInsets.symmetric(horizontal: 20.0),
+                                    child: Icon(Icons.delete, color: Colors.white),
+                                  ),
+                                  confirmDismiss: (direction) async {
+                                    return await showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          backgroundColor: Colors.white,
+                                          title: Text('Confirm'),
+                                          content: Text('Are you sure you want to delete this notification?'),
+                                          actions: <Widget>[
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(false),
+                                              child: Text('CANCEL'),
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: Colors.red,
+                                              ),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(true),
+                                              child: Text('DELETE'),
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: Colors.green,
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                  onDismissed: (direction) {
+                                    _deleteNotification(notification);
+                                  },
+                                  child: FutureBuilder<Map<String, dynamic>>(
+                                    future: _fetchProductAndOwner(productId, notification['message'] ?? '', timestamp ?? Timestamp.now()),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState == ConnectionState.waiting) {
+                                        return Center(child: CircularProgressIndicator(color: Colors.green));
+                                      } else if (snapshot.hasError) {
+                                        return Center(child: Text('Error fetching product data'));
+                                      } else if (!snapshot.hasData || snapshot.data == null) {
+                                        return Center(child: Text('Product data not found'));
+                                      }
 
-                                final data = snapshot.data!;
-                                return NotificationCard(
-                                  productName: data['productName'],
-                                  message: data['message'],
-                                  timestamp: data['timestamp'].toDate().toString(),
+                                      final data = snapshot.data!;
+                                      return NotificationCard(
+                                        productName: data['productName'],
+                                        message: data['message'],
+                                        timestamp: data['timestamp'].toDate().toString(),
+                                      );
+                                    },
+                                  ),
                                 );
                               },
                             ),
-                          );
-                        },
-                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
       bottomNavigationBar: BottomNavigationBar(
-         backgroundColor: Colors.white,
+        backgroundColor: Colors.white,
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
+            icon: badges.Badge(
+              showBadge: _unreadCount > 0,
+              badgeContent: Text(
+                _unreadCount.toString(),
+                style: const TextStyle(color: Colors.white),
+              ),
+              child: Icon(Icons.notifications),
+            ),
             label: 'Notifications',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: _profileImageUrl != null
+                ? CircleAvatar(
+                    backgroundImage: NetworkImage(_profileImageUrl!),
+                    radius: 12,
+                  )
+                : Icon(Icons.person),
+            label: _firstName ?? 'Profile',
           ),
         ],
         currentIndex: _selectedIndex,

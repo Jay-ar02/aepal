@@ -1,4 +1,4 @@
-// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, avoid_print, use_build_context_synchronously, prefer_const_constructors, prefer_interpolation_to_compose_strings, sized_box_for_whitespace, sort_child_properties_last, no_leading_underscores_for_local_identifiers
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, avoid_print, use_build_context_synchronously, prefer_const_constructors, prefer_interpolation_to_compose_strings, sized_box_for_whitespace, sort_child_properties_last, no_leading_underscores_for_local_identifiers, prefer_const_literals_to_create_immutables
 
 import 'dart:async';
 import 'package:badges/badges.dart' as badges;
@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'buyer_profile_page.dart';
 import 'buyer_search_page.dart';
+import 'package:aepal/seller/view_bidders_page.dart';
 
 class BuyerPage extends StatefulWidget {
   final bool showSuccessNotification;
@@ -22,16 +23,18 @@ class BuyerPage extends StatefulWidget {
 class _BuyerPageState extends State<BuyerPage> {
   int _selectedIndex = 0;
   int _unreadNotifications = 0;
-  final TextEditingController _controller = TextEditingController(); 
-  String _searchQuery = ''; 
-  String? _municipalityFilter; 
+  final TextEditingController _controller = TextEditingController();
+  String _searchQuery = '';
+  String? _municipalityFilter;
+  String? _firstName;
+  String? _profileImageUrl;
 
   @override
   void initState() {
     super.initState();
-    _municipalityFilter = widget.municipalityFilter; 
+    _municipalityFilter = widget.municipalityFilter;
     _fetchUserName();
-    _fetchNotifications(); 
+    _fetchNotifications();
     if (widget.showSuccessNotification) {
       Future.delayed(Duration.zero, () {
         Fluttertoast.showToast(
@@ -50,7 +53,10 @@ class _BuyerPageState extends State<BuyerPage> {
         DocumentSnapshot userDoc =
             await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         if (userDoc.exists) {
-          setState(() {});
+          setState(() {
+            _firstName = userDoc['firstName'] ?? 'Profile';
+            _profileImageUrl = userDoc['profileImage'] ?? 'https://via.placeholder.com/150';
+          });
         }
       } catch (e) {
         print("Error fetching user data: $e");
@@ -109,7 +115,6 @@ class _BuyerPageState extends State<BuyerPage> {
 
   void _onItemTapped(int index) async {
     if (index == 1) {
-      // Navigating to notifications, mark them as read
       await FirebaseFirestore.instance
           .collection('users')
           .doc(FirebaseAuth.instance.currentUser!.uid)
@@ -123,7 +128,7 @@ class _BuyerPageState extends State<BuyerPage> {
       });
 
       setState(() {
-        _unreadNotifications = 0; 
+        _unreadNotifications = 0;
       });
     }
 
@@ -179,7 +184,7 @@ class _BuyerPageState extends State<BuyerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, 
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Bagsakan'),
         backgroundColor: Colors.white,
@@ -196,6 +201,29 @@ class _BuyerPageState extends State<BuyerPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Buyer Mode Container
+            Container(
+              width: double.infinity,
+              color: Colors.green[100],
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.shopping_cart, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text(
+                    'Buyer Mode',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Search Bar
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: GestureDetector(
@@ -221,6 +249,7 @@ class _BuyerPageState extends State<BuyerPage> {
                 ),
               ),
             ),
+
             Padding(
               padding: const EdgeInsets.all(10.0),
               child: Text(
@@ -231,6 +260,7 @@ class _BuyerPageState extends State<BuyerPage> {
                 ),
               ),
             ),
+
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('products').snapshots(),
@@ -259,13 +289,13 @@ class _BuyerPageState extends State<BuyerPage> {
                       crossAxisCount: 2,
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
-                      childAspectRatio: 0.65,
+                      childAspectRatio: 0.62,
                     ),
                     itemCount: products.length,
                     itemBuilder: (context, index) {
                       var product = products[index];
-                      var productId = product.id; // Adjust according to your data structure
-                      var userId = product['userId'] ?? ''; // Ensure userId is fetched
+                      var productId = product.id;
+                      var userId = product['userId'] ?? '';
 
                       return FutureBuilder<Map<String, String>>(
                         future: _fetchSellerDetails(userId),
@@ -282,10 +312,10 @@ class _BuyerPageState extends State<BuyerPage> {
                             location: product['address'],
                             availableKgs: product['availableKilos'],
                             minAmount: product['minAmount'],
-                            timeDuration: product['timeDuration'],
+                            endTime: DateTime.parse(product['timeDuration']),
                             productId: productId,
                             ownerId: userId,
-                            productStatus: product['status'], // Pass product status to the ProductCard
+                            productStatus: product['status'],
                             onAddressTap: () {
                               _showAddressModal(context, userId);
                             },
@@ -319,8 +349,13 @@ class _BuyerPageState extends State<BuyerPage> {
             label: 'Notifications',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: _profileImageUrl != null
+                ? CircleAvatar(
+                    backgroundImage: NetworkImage(_profileImageUrl!),
+                    radius: 12,
+                  )
+                : Icon(Icons.person),
+            label: _firstName ?? 'Profile',
           ),
         ],
         currentIndex: _selectedIndex,
@@ -341,21 +376,21 @@ class _BuyerPageState extends State<BuyerPage> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Container(
-                height: 200, // Adjust height as needed
+                height: 200,
                 child: Center(child: CircularProgressIndicator(color: Colors.green)),
               );
             }
 
             if (snapshot.hasError) {
               return Container(
-                height: 200, // Adjust height as needed
+                height: 200,
                 child: Center(child: Text('Error: ${snapshot.error}')),
               );
             }
 
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Container(
-                height: 200, // Adjust height as needed
+                height: 200,
                 child: Center(child: Text('No address found.')),
               );
             }
@@ -387,7 +422,7 @@ class _BuyerPageState extends State<BuyerPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(Icons.location_on, color: Colors.blue, size: 20),
-                          SizedBox(width: 8), // Space between icon and text
+                          SizedBox(width: 8),
                           Expanded(
                             child: Wrap(
                               children: [
@@ -423,7 +458,7 @@ class _BuyerPageState extends State<BuyerPage> {
   }
 }
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final String sellerName;
   final String profileImageUrl;
   final String imageUrl;
@@ -431,10 +466,10 @@ class ProductCard extends StatelessWidget {
   final String location;
   final int availableKgs;
   final double minAmount;
-  final String timeDuration;
+  final DateTime endTime;
   final String productId;
   final String ownerId;
-  final String productStatus; // Add product status to the ProductCard
+  final String productStatus;
   final VoidCallback onAddressTap;
 
   const ProductCard({
@@ -445,12 +480,323 @@ class ProductCard extends StatelessWidget {
     required this.location,
     required this.availableKgs,
     required this.minAmount,
-    required this.timeDuration,
+    required this.endTime,
     required this.productId,
     required this.ownerId,
-    required this.productStatus, // Add product status to the ProductCard
+    required this.productStatus,
     required this.onAddressTap,
   });
+
+  @override
+  _ProductCardState createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> {
+  Stream<int> _countdownStream(Duration duration) async* {
+    int seconds = duration.inSeconds;
+    while (seconds >= 0) {
+      await Future.delayed(Duration(seconds: 1));
+      yield seconds--;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    TextStyle smallFontSize = TextStyle(fontSize: 12);
+
+    final now = DateTime.now();
+    final duration = widget.endTime.difference(now);
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    bool isOwner = user != null && user.uid == widget.ownerId;
+
+    return SizedBox(
+      height: 270,
+      child: Card(
+        color: Colors.grey[100],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(widget.profileImageUrl),
+                    radius: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.sellerName,
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on, color: Colors.blue, size: 16),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: widget.onAddressTap,
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        widget.location,
+                                        style: TextStyle(
+                                          fontStyle: FontStyle.italic,
+                                          color: Colors.blue,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Icon(Icons.arrow_forward_ios, color: Colors.blue, size: 12),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (widget.productStatus == 'BIDDING SOON')
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'save') {
+                          _showSaveDialog(context);
+                        }
+                      },
+                      itemBuilder: (BuildContext context) {
+                        return [
+                          PopupMenuItem<String>(
+                            value: 'save',
+                            child: Text('Save'),
+                          ),
+                        ];
+                      },
+                    ),
+                ],
+              ),
+            ),
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7), bottom: Radius.circular(7)),
+              child: Image.network(
+                widget.imageUrl,
+                height: 110,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(9.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.title,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'AVAILABLE KLS.: ${widget.availableKgs}',
+                      style: smallFontSize,
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          'Time Remaining: ',
+                          style: smallFontSize.copyWith(color: Colors.black),
+                        ),
+                        StreamBuilder<int>(
+                          stream: _countdownStream(duration),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData || snapshot.data! <= 0) {
+                              return Text(
+                                '00:00:00',
+                                style: smallFontSize.copyWith(color: Colors.red),
+                              );
+                            } else {
+                              final remainingDuration = Duration(seconds: snapshot.data!);
+                              return Text(
+                                _formatDuration(remainingDuration),
+                                style: smallFontSize.copyWith(color: Colors.red),
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Minimum Amount: ₱${widget.minAmount.toStringAsFixed(2)}',
+                      style: smallFontSize.copyWith(color: Colors.black),
+                    ),
+                    SizedBox(height: 8),
+                    if (isOwner)
+                      Container(
+                        width: double.infinity,
+                        height: 30,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ViewBiddersPage(productId: widget.productId),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            'VIEW BIDDERS',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      FutureBuilder<bool>(
+                        future: _isBiddingClosed(widget.productId),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator(color: Colors.green));
+                          }
+                          if (snapshot.hasError || snapshot.data == false) {
+                            if (duration.isNegative) {
+                              return Container(
+                                width: double.infinity,
+                                height: 30,
+                                child: ElevatedButton(
+                                  onPressed: null,
+                                  child: Text(
+                                    'BIDDING CLOSED',
+                                    style: TextStyle(color: Colors.red[400]),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.zero,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            } else if (widget.productStatus == 'BIDDING SOON') {
+                              return Container(
+                                width: double.infinity,
+                                height: 30,
+                                child: ElevatedButton(
+                                  onPressed: null,
+                                  child: Text(
+                                    'BIDDING SOON',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.zero,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            } else {
+                              return FutureBuilder<bool>(
+                                future: _hasUserPlacedBid(widget.productId),
+                                builder: (context, bidSnapshot) {
+                                  if (bidSnapshot.connectionState == ConnectionState.waiting) {
+                                    return Center(child: CircularProgressIndicator(color: Colors.green));
+                                  }
+                                  if (bidSnapshot.hasError || !bidSnapshot.data!) {
+                                    return Container(
+                                      width: double.infinity,
+                                      height: 30,
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          _showOfferBidModal(context, widget.productId, widget.minAmount);
+                                        },
+                                        child: Text(
+                                          'OFFER BID',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.zero,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    return Container(
+                                      width: double.infinity,
+                                      height: 30,
+                                      child: ElevatedButton(
+                                        onPressed: null,
+                                        child: Text(
+                                          'BID PLACED',
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.grey,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.zero,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              );
+                            }
+                          } else {
+                            return Container(
+                              width: double.infinity,
+                              height: 30,
+                              child: ElevatedButton(
+                                onPressed: null,
+                                child: Text(
+                                  'BIDDING CLOSED',
+                                  style: TextStyle(color: Colors.red[400]),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+  }
 
   Future<bool> _hasUserPlacedBid(String productId) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -485,211 +831,37 @@ class ProductCard extends StatelessWidget {
     return false;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    TextStyle smallFontSize = TextStyle(fontSize: 12);
-
-    return SizedBox(
-      height: 270, 
-      child: Card(
-        color: Colors.grey[100], 
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundImage: NetworkImage(profileImageUrl),
-                    radius: 20,
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          sellerName,
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on, color: Colors.blue, size: 16),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: onAddressTap,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        location,
-                                        style: TextStyle(
-                                          fontStyle: FontStyle.italic,
-                                          color: Colors.blue,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Icon(Icons.arrow_forward_ios, color: Colors.blue, size: 12),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+  void _showSaveDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Save Product'),
+          content: Text('Do you want to save this product for later?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
             ),
-            ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(7), bottom: Radius.circular(7)),
-              child: Image.network(
-                imageUrl,
-                height: 110,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(9.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      'AVAILABLE KLS.: $availableKgs',
-                      style: smallFontSize,
-                    ),
-                    SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(
-                          'Time Duration: ',
-                          style: smallFontSize.copyWith(color: Colors.black),
-                        ),
-                        Text(
-                          timeDuration,
-                          style: smallFontSize.copyWith(color: Colors.red),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    FutureBuilder<bool>(
-                      future: _isBiddingClosed(productId),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return Center(child: CircularProgressIndicator(color: Colors.green));
-                        }
-                        if (snapshot.hasError || snapshot.data == false) {
-                          if (productStatus == 'BIDDING SOON') {
-                            return Container(
-                              width: double.infinity,
-                              height: 30,
-                              child: ElevatedButton(
-                                onPressed: null,
-                                child: Text(
-                                  'BIDDING SOON',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.zero,
-                                  ),
-                                ),
-                              ),
-                            );
-                          } else {
-                            return FutureBuilder<bool>(
-                              future: _hasUserPlacedBid(productId),
-                              builder: (context, bidSnapshot) {
-                                if (bidSnapshot.connectionState == ConnectionState.waiting) {
-                                  return Center(child: CircularProgressIndicator(color: Colors.green));
-                                }
-                                if (bidSnapshot.hasError || !bidSnapshot.data!) {
-                                  return Container(
-                                    width: double.infinity,
-                                    height: 30,
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        _showOfferBidModal(context, productId, minAmount);
-                                      },
-                                      child: Text(
-                                        'OFFER BID',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.zero,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  return Container(
-                                    width: double.infinity,
-                                    height: 30,
-                                    child: ElevatedButton(
-                                      onPressed: null,
-                                      child: Text(
-                                        'BID PLACED',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.grey,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.zero,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              },
-                            );
-                          }
-                        } else {
-                          return Container(
-                            width: double.infinity,
-                            height: 30,
-                            child: ElevatedButton(
-                              onPressed: null,
-                              child: Text(
-                                'BIDDING CLOSED',
-                                style: TextStyle(color: Colors.red[400]),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.zero,
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Fluttertoast.showToast(
+                  msg: 'Product saved!',
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                );
+              },
+              child: Text('Save'),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
+}
 
 void _showOfferBidModal(BuildContext context, String productId, double minAmount) {
   TextEditingController _bidAmountController = TextEditingController();
@@ -709,10 +881,10 @@ void _showOfferBidModal(BuildContext context, String productId, double minAmount
             child: SingleChildScrollView(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white, // Background color
+                  color: Colors.white, 
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20), // Upper left radius
-                    topRight: Radius.circular(20), // Upper right radius
+                    topLeft: Radius.circular(20), 
+                    topRight: Radius.circular(20), 
                   ),
                 ),
                 padding: const EdgeInsets.all(20.0),
@@ -722,21 +894,6 @@ void _showOfferBidModal(BuildContext context, String productId, double minAmount
                     Text(
                       'OFFER HIGHEST BID',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                    SizedBox(height: 10),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Minimum is ',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          TextSpan(
-                            text: '₱${minAmount.toStringAsFixed(2)}',
-                            style: TextStyle(fontSize: 16, color: Colors.red),
-                          ),
-                        ],
-                      ),
                     ),
                     SizedBox(height: 20),
                     Theme(
@@ -860,5 +1017,4 @@ void _showOfferBidModal(BuildContext context, String productId, double minAmount
       );
     },
   );
-}
 }

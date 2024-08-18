@@ -1,15 +1,15 @@
-// ignore_for_file: unused_import, use_key_in_widget_constructors, prefer_const_constructors, library_private_types_in_public_api, avoid_print, prefer_const_literals_to_create_immutables, prefer_const_constructors_in_immutables, sort_child_properties_last, prefer_interpolation_to_compose_strings, unused_local_variable, sized_box_for_whitespace
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, prefer_const_constructors, prefer_const_literals_to_create_immutables, sort_child_properties_last, unnecessary_to_list_in_spreads
 
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'add_product_page.dart';
 import 'seller_notification_page.dart';
-import 'seller_profile_page.dart'; 
-import 'view_bidders_page.dart'; 
-import 'edit_product_page.dart'; 
+import 'seller_profile_page.dart';
+import 'view_bidders_page.dart';
+import 'edit_product_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:badges/badges.dart' as badges;
 
 void main() {
   runApp(MyApp());
@@ -35,29 +35,44 @@ class SellerPage extends StatefulWidget {
 
 class _SellerPageState extends State<SellerPage> {
   int _selectedIndex = 0;
+  String? _firstName;
+  String? _profileImageUrl;
+  int _unreadNotifications = 0;
 
-  Future<String> _getUserName() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      try {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        final firstName = doc['firstName'] ?? 'Unknown';
-        final lastName = doc['lastName'] ?? 'Seller';
-        return '$firstName $lastName';
-      } catch (e) {
-        print("Error fetching user data: $e");
-        return 'Unknown Seller';
-      }
-    }
-    return 'Unknown Seller';
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+    _fetchNotifications();
   }
 
-  Future<String> _getUserId() async {
+  Future<void> _fetchUserData() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      return user.uid;
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (userDoc.exists) {
+        setState(() {
+          _firstName = userDoc['firstName'] ?? 'Profile';
+          _profileImageUrl = userDoc['profileImage'] ?? 'https://via.placeholder.com/150';
+        });
+      }
     }
-    return '';
+  }
+
+  Future<void> _fetchNotifications() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final notifications = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('notifications')
+          .where('read', isEqualTo: false)
+          .get();
+
+      setState(() {
+        _unreadNotifications = notifications.docs.length;
+      });
+    }
   }
 
   Future<Map<String, String>> _fetchSellerDetails(String sellerId) async {
@@ -110,90 +125,90 @@ class _SellerPageState extends State<SellerPage> {
   }
 
   void _showDeleteConfirmationDialog(BuildContext context, String productId) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: Colors.white,
-        title: Text(
-          'Delete Product',
-          style: TextStyle(color: Colors.black),
-        ),
-        content: Text(
-          'Are you sure you want to delete this product?',
-          style: TextStyle(color: Colors.black),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: Text(
-              'No',
-              style: TextStyle(color: Colors.red),
-            ),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Text(
+            'Delete Product',
+            style: TextStyle(color: Colors.black),
           ),
-          TextButton(
-            child: Text(
-              'Yes',
-              style: TextStyle(color: Colors.green),
-            ),
-            onPressed: () {
-              _deleteProduct(productId);
-              Navigator.of(context).pop();
-            },
+          content: Text(
+            'Are you sure you want to delete this product?',
+            style: TextStyle(color: Colors.black),
           ),
-        ],
-      );
-    },
-  );
-}
+          actions: <Widget>[
+            TextButton(
+              child: Text(
+                'No',
+                style: TextStyle(color: Colors.red),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text(
+                'Yes',
+                style: TextStyle(color: Colors.green),
+              ),
+              onPressed: () {
+                _deleteProduct(productId);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   void _showProductOptionsDialog(BuildContext context, String productId, Map<String, dynamic> productData) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: Colors.white,
-        title: Text(
-          'Product Options',
-          style: TextStyle(color: Colors.black),
-        ),
-        content: Text(
-          'What would you like to do with this product?',
-          style: TextStyle(color: Colors.black),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: Text(
-              'Edit',
-              style: TextStyle(color: Colors.blue),
-            ),
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditProductPage(productId: productId, productData: productData),
-                ),
-              );
-            },
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Text(
+            'Product Options',
+            style: TextStyle(color: Colors.black),
           ),
-          TextButton(
-            child: Text(
-              'Delete',
-              style: TextStyle(color: Colors.red),
-            ),
-            onPressed: () {
-              Navigator.of(context).pop();
-              _showDeleteConfirmationDialog(context, productId);
-            },
+          content: Text(
+            'What would you like to do with this product?',
+            style: TextStyle(color: Colors.black),
           ),
-        ],
-      );
-    },
-  );
-}
+          actions: <Widget>[
+            TextButton(
+              child: Text(
+                'Edit',
+                style: TextStyle(color: Colors.blue),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditProductPage(productId: productId, productData: productData),
+                  ),
+                );
+              },
+            ),
+            TextButton(
+              child: Text(
+                'Delete',
+                style: TextStyle(color: Colors.red),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _showDeleteConfirmationDialog(context, productId);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   Future<void> _refreshProducts() async {
     await Future.delayed(Duration(seconds: 2));
@@ -229,6 +244,27 @@ class _SellerPageState extends State<SellerPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Seller Mode Container
+            Container(
+              width: double.infinity,
+              color: Colors.green[100],
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.store, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text(
+                    'Seller Mode',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             SearchBar(),
             Padding(
               padding: const EdgeInsets.all(10.0),
@@ -242,7 +278,7 @@ class _SellerPageState extends State<SellerPage> {
             ),
             Expanded(
               child: FutureBuilder<String>(
-                future: _getUserName(),
+                future: Future.value(''),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator(color: Colors.green));
@@ -250,10 +286,9 @@ class _SellerPageState extends State<SellerPage> {
                   if (!snapshot.hasData) {
                     return Center(child: Text('No products available.'));
                   }
-                  final sellerName = snapshot.data!;
 
                   return FutureBuilder<String>(
-                    future: _getUserId(),
+                    future: Future.value(FirebaseAuth.instance.currentUser?.uid ?? ''),
                     builder: (context, userSnapshot) {
                       if (userSnapshot.connectionState == ConnectionState.waiting) {
                         return Center(child: CircularProgressIndicator(color: Colors.green));
@@ -266,7 +301,7 @@ class _SellerPageState extends State<SellerPage> {
                       return StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('products')
-                            .where('userId', isEqualTo: userId) 
+                            .where('userId', isEqualTo: userId)
                             .snapshots(),
                         builder: (context, productSnapshot) {
                           if (productSnapshot.connectionState == ConnectionState.waiting) {
@@ -282,7 +317,7 @@ class _SellerPageState extends State<SellerPage> {
                               crossAxisCount: 2,
                               crossAxisSpacing: 10,
                               mainAxisSpacing: 10,
-                              childAspectRatio: 0.65,
+                              childAspectRatio: 0.62,
                             ),
                             itemCount: products.length,
                             itemBuilder: (context, index) {
@@ -306,8 +341,9 @@ class _SellerPageState extends State<SellerPage> {
                                     title: product['productName'],
                                     location: product['address'],
                                     availableKgs: product['availableKilos'],
-                                    timeDuration: product['timeDuration'],
-                                    productStatus: product['status'], // Add product status to the ProductCard
+                                    minAmount: product['minAmount'],
+                                    endTime: DateTime.parse(product['timeDuration']),
+                                    productStatus: product['status'],
                                     onPressed: () {
                                       Navigator.pushNamed(
                                         context,
@@ -341,16 +377,29 @@ class _SellerPageState extends State<SellerPage> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.notifications),
+            icon: badges.Badge(
+              showBadge: _unreadNotifications > 0,
+              badgeContent: Text(
+                _unreadNotifications.toString(),
+                style: const TextStyle(color: Colors.white),
+              ),
+              child: Icon(Icons.notifications),
+            ),
             label: 'Notifications',
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.person),
-            label: 'Profile',
+            icon: _profileImageUrl != null
+                ? CircleAvatar(
+                    backgroundImage: NetworkImage(_profileImageUrl!),
+                    radius: 12,
+                  )
+                : Icon(Icons.person),
+            label: _firstName ?? 'Profile',
           ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: const Color.fromARGB(255, 55, 143, 58),
+        unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
       ),
     );
@@ -496,8 +545,9 @@ class ProductCard extends StatelessWidget {
   final String title;
   final String location;
   final int availableKgs;
-  final String timeDuration;
-  final String productStatus; // Add product status to the ProductCard
+  final double minAmount;
+  final DateTime endTime;
+  final String productStatus;
   final VoidCallback onPressed;
   final VoidCallback onLongPress;
 
@@ -509,8 +559,9 @@ class ProductCard extends StatelessWidget {
     required this.title,
     required this.location,
     required this.availableKgs,
-    required this.timeDuration,
-    required this.productStatus, // Add product status to the ProductCard
+    required this.minAmount,
+    required this.endTime,
+    required this.productStatus,
     required this.onPressed,
     required this.onLongPress,
   });
@@ -518,6 +569,8 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     TextStyle smallFontSize = TextStyle(fontSize: 12);
+    final now = DateTime.now();
+    final duration = endTime.difference(now);
 
     return GestureDetector(
       onLongPress: onLongPress,
@@ -595,14 +648,32 @@ class ProductCard extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            'Time Duration: ',
+                            'Time Remaining: ',
                             style: smallFontSize.copyWith(color: Colors.black),
                           ),
-                          Text(
-                            timeDuration,
-                            style: smallFontSize.copyWith(color: Colors.red),
+                          StreamBuilder<int>(
+                            stream: _countdownStream(duration),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData || snapshot.data! <= 0) {
+                                return Text(
+                                  '00:00:00',
+                                  style: smallFontSize.copyWith(color: Colors.red),
+                                );
+                              } else {
+                                final remainingDuration = Duration(seconds: snapshot.data!);
+                                return Text(
+                                  _formatDuration(remainingDuration),
+                                  style: smallFontSize.copyWith(color: Colors.red),
+                                );
+                              }
+                            },
                           ),
                         ],
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Minimum Amount: ₱${minAmount.toStringAsFixed(2)}',
+                        style: smallFontSize.copyWith(color: Colors.black),
                       ),
                       SizedBox(height: 8),
                       Container(
@@ -632,5 +703,19 @@ class ProductCard extends StatelessWidget {
       ),
     );
   }
-}
 
+  Stream<int> _countdownStream(Duration duration) async* {
+    int seconds = duration.inSeconds;
+    while (seconds >= 0) {
+      await Future.delayed(Duration(seconds: 1));
+      yield seconds--;
+    }
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+  }
+}

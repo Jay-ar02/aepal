@@ -25,6 +25,8 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
   Map<String, dynamic>? _userData;
   List<Map<String, dynamic>> _userPosts = [];
   List<String> _userImages = [];
+  String? _firstName;
+  String? _profileImageUrl;
 
   @override
   void initState() {
@@ -43,6 +45,8 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
       if (userDoc.exists) {
         setState(() {
           _userData = userDoc.data() as Map<String, dynamic>?;
+          _firstName = _userData?['firstName'] ?? 'Profile';
+          _profileImageUrl = _userData?['profileImage'] ?? 'https://via.placeholder.com/150';
         });
       }
     }
@@ -118,6 +122,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
       });
 
       setState(() {
+        _unreadNotifications = 0;
       });
     }
 
@@ -152,14 +157,15 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
   }
 
   void _updateProfileImage() async {
+    // Logic to update profile image
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       backgroundColor: Colors.white,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-         backgroundColor: Colors.white,
+        backgroundColor: Colors.white,
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
@@ -167,45 +173,44 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
           },
         ),
         actions: [
-  IconButton(
-    icon: Icon(Icons.logout),
-    onPressed: () {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            backgroundColor: Colors.white, 
-            title: Text("Logout"),
-            content: Text("Are you sure you want to logout?"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    backgroundColor: Colors.white, 
+                    title: Text("Logout"),
+                    content: Text("Are you sure you want to logout?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: Text("No"),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red, 
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          FirebaseAuth.instance.signOut();
+                          Navigator.pushNamedAndRemoveUntil(
+                              context, '/', (route) => false);
+                        },
+                        child: Text("Yes"),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.green, 
+                        ),
+                      ),
+                    ],
+                  );
                 },
-                child: Text("No"),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.red, 
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  FirebaseAuth.instance.signOut();
-                  Navigator.pushNamedAndRemoveUntil(
-                      context, '/', (route) => false);
-                },
-                child: Text("Yes"),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.green, 
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  ),
-],
-
+              );
+            },
+          ),
+        ],
         title: Text('Profile'),
         centerTitle: true,
       ),
@@ -218,6 +223,28 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                 physics: AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
+                    // Buyer Mode Container
+                    Container(
+                      width: double.infinity,
+                      color: Colors.green[100],
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.shopping_cart, color: Colors.green),
+                          SizedBox(width: 8),
+                          Text(
+                            'Buyer Mode',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
                     Stack(
                       children: [
                         Container(
@@ -331,6 +358,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                         ),
                       ],
                     ),
+                    
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -464,7 +492,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
               ),
             ),
       bottomNavigationBar: BottomNavigationBar(
-         backgroundColor: Colors.white,
+        backgroundColor: Colors.white,
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -482,8 +510,13 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
             label: 'Notifications',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+            icon: _profileImageUrl != null
+                ? CircleAvatar(
+                    backgroundImage: NetworkImage(_profileImageUrl!),
+                    radius: 12,
+                  )
+                : Icon(Icons.person),
+            label: _firstName ?? 'Profile',
           ),
         ],
         currentIndex: _selectedIndex,

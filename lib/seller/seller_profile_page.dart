@@ -5,6 +5,7 @@ import 'package:aepal/seller/seller_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'seller_edit_details_page.dart';
 
 class SellerProfilePage extends StatefulWidget {
@@ -78,24 +79,24 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
   }
 
   Future<void> _fetchFarmLogs() async {
-  if (_currentUser != null) {
-    QuerySnapshot logsSnapshot = await FirebaseFirestore.instance
-        .collection('farmLogs')
-        .where('userId', isEqualTo: _currentUser!.uid)
-        .get();
-    setState(() {
-      _farmLogs = logsSnapshot.docs.map((doc) {
-        var data = doc.data() as Map<String, dynamic>;
-        return {
-          'activity': data['activity'] ?? 'No activity',
-          'description': data['description'] ?? 'No description',
-          'timestamp': data['timestamp'] ?? Timestamp.now(),
-          'id': doc.id,
-        };
-      }).toList();
-    });
+    if (_currentUser != null) {
+      QuerySnapshot logsSnapshot = await FirebaseFirestore.instance
+          .collection('farmLogs')
+          .where('userId', isEqualTo: _currentUser!.uid)
+          .get();
+      setState(() {
+        _farmLogs = logsSnapshot.docs.map((doc) {
+          var data = doc.data() as Map<String, dynamic>;
+          return {
+            'activity': data['activity'] ?? 'No activity',
+            'description': data['description'] ?? 'No description',
+            'timestamp': data['timestamp'] ?? Timestamp.now(),
+            'id': doc.id,
+          };
+        }).toList();
+      });
+    }
   }
-}
 
   Future<void> _refreshData() async {
     await Future.wait([
@@ -128,11 +129,11 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
   }
 
   void _deleteFarmLog(String logId, int index) async {
-  await FirebaseFirestore.instance.collection('farmLogs').doc(logId).delete();
-  setState(() {
-    _farmLogs.removeWhere((log) => log['id'] == logId);
-  });
-}
+    await FirebaseFirestore.instance.collection('farmLogs').doc(logId).delete();
+    setState(() {
+      _farmLogs.removeWhere((log) => log['id'] == logId);
+    });
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -171,55 +172,54 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       backgroundColor: Colors.white,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-         backgroundColor: Colors.white,
+        backgroundColor: Colors.white,
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.pop(context); // Navigate back to the previous screen
           },
         ),
-       actions: [
-  IconButton(
-    icon: Icon(Icons.logout),
-    onPressed: () {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            backgroundColor: Colors.white, // Set the background color of the modal
-            title: Text("Logout"),
-            content: Text("Are you sure you want to logout?"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    backgroundColor: Colors.white, // Set the background color of the modal
+                    title: Text("Logout"),
+                    content: Text("Are you sure you want to logout?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: Text("No"),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red, // Set the color for 'No' button
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          FirebaseAuth.instance.signOut();
+                          Navigator.pushNamedAndRemoveUntil(
+                              context, '/', (route) => false);
+                        },
+                        child: Text("Yes"),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.green, // Set the color for 'Yes' button
+                        ),
+                      ),
+                    ],
+                  );
                 },
-                child: Text("No"),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.red, // Set the color for 'No' button
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  FirebaseAuth.instance.signOut();
-                  Navigator.pushNamedAndRemoveUntil(
-                      context, '/', (route) => false);
-                },
-                child: Text("Yes"),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.green, // Set the color for 'Yes' button
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  ),
-],
-
+              );
+            },
+          ),
+        ],
         title: Text('Profile'),
         centerTitle: true,
       ),
@@ -232,6 +232,27 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                 physics: AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
+                    // Seller Mode Container
+                    Container(
+                      width: double.infinity,
+                      color: Colors.green[100],
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.store, color: Colors.green),
+                          SizedBox(width: 8),
+                          Text(
+                            'Seller Mode',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     Stack(
                       children: [
                         Container(
@@ -446,7 +467,53 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  _buildFarmLogTable(),
+                                  ..._farmLogs.map((log) {
+                                    return Card(
+                                      color: Colors.white, // Set the background color to white
+                                      elevation: 4,
+                                      margin: const EdgeInsets.symmetric(vertical: 8.0),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              log['activity'] ?? 'No activity',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            SizedBox(height: 8),
+                                            Text(
+                                              log['description'] ?? 'No description',
+                                              style: TextStyle(fontSize: 16),
+                                            ),
+                                            SizedBox(height: 8),
+                                            Text(
+                                              log['timestamp'] != null
+                                                  ? DateFormat('MM/dd/yyyy hh:mm a').format(
+                                                      (log['timestamp'] as Timestamp).toDate(),
+                                                    )
+                                                  : 'No Date & Time',
+                                              style: TextStyle(fontSize: 14, color: Colors.grey),
+                                            ),
+                                            SizedBox(height: 8),
+                                            Align(
+                                              alignment: Alignment.bottomRight,
+                                              child: IconButton(
+                                                icon: Icon(Icons.delete, color: Colors.red),
+                                                onPressed: () {
+                                                  _showDeleteConfirmationDialog(
+                                                      context, log['id'], log['activity']);
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
                                   SizedBox(height: 16),
                                   SizedBox(
                                     width: double.infinity,
@@ -502,27 +569,38 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                 ),
               ),
             ),
-      bottomNavigationBar: BottomNavigationBar(
-         backgroundColor: Colors.white,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notifications',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
+      bottomNavigationBar: _userData == null
+          ? CircularProgressIndicator()
+          : BottomNavigationBar(
+              backgroundColor: Colors.white,
+              currentIndex: _selectedIndex,
+              onTap: _onItemTapped,
+              selectedItemColor: Colors.green,
+              unselectedItemColor: Colors.grey,
+              items: [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.notifications),
+                  label: 'Notifications',
+                ),
+                BottomNavigationBarItem(
+                  icon: CircleAvatar(
+                    backgroundImage: _userData?['profileImage'] != null
+                        ? NetworkImage(_userData?['profileImage'])
+                        : null,
+                    radius: 15,
+                    backgroundColor: Colors.grey.shade200,
+                    child: _userData?['profileImage'] == null
+                        ? Icon(Icons.person, color: Colors.grey.shade400)
+                        : null,
+                  ),
+                  label: _userData?['firstName'] ?? 'Profile',
+                ),
+              ],
+            ),
     );
   }
 
@@ -590,81 +668,33 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
     );
   }
 
- Widget _buildFarmLogTable() {
-  return Table(
-    border: TableBorder.all(),
-    columnWidths: const {
-      0: FlexColumnWidth(3),
-      1: FlexColumnWidth(5),
-      2: FlexColumnWidth(3),
-      3: FlexColumnWidth(2),
-    },
-    children: [
-      TableRow(
-        decoration: BoxDecoration(color: Colors.grey[300]),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Activity',
-              style: TextStyle(fontWeight: FontWeight.bold),
+  void _showDeleteConfirmationDialog(BuildContext context, String logId, String activityName) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white, // Set the background color to white
+          title: Text('Confirm Deletion'),
+          content: Text('Are you sure you want to delete the activity "$activityName"?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Cancel', style: TextStyle(color: Colors.red)),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Description',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Timestamp',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Delete',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-      ..._farmLogs.map((log) {
-        return TableRow(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(log['activity'] ?? 'No activity'),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(log['description'] ?? 'No description'),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(log['timestamp'] != null 
-                          ? (log['timestamp'] as Timestamp).toDate().toString() 
-                          : 'No timestamp'),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: IconButton(
-                icon: Icon(Icons.delete, color: Colors.red),
-                onPressed: () {
-                  _deleteFarmLog(log['id'], _farmLogs.indexOf(log));
-                },
-              ),
+            TextButton(
+              onPressed: () {
+                _deleteFarmLog(logId, _farmLogs.indexWhere((log) => log['id'] == logId));
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Delete', style: TextStyle(color: Colors.green)),
             ),
           ],
         );
-      }).toList(),
-    ],
-  );
-}
+      },
+    );
+  }
 
   Widget _buildSelectableButton(String title, int index, IconData iconData) {
     return GestureDetector(

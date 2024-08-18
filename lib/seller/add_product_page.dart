@@ -19,8 +19,8 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _productNameController = TextEditingController();
   final TextEditingController _availableKilosController = TextEditingController();
   final TextEditingController _minAmountController = TextEditingController();
-  String? _timeDuration;
-  String _productStatus = 'BIDDING SOON'; // Add product status field
+  int? _timeDurationHours;  // Changed to int to represent hours
+  String _productStatus = 'BIDDING SOON'; 
   File? _image;
   final ImagePicker _picker = ImagePicker();
   String _addressText = "Street, Barangay, Municipality"; 
@@ -56,14 +56,16 @@ class _AddProductPageState extends State<AddProductPage> {
           imageUrl = await _uploadImage(_image!);
         }
 
+        DateTime endTime = DateTime.now().add(Duration(hours: _timeDurationHours!));
+
         await FirebaseFirestore.instance.collection('products').add({
           'userId': user.uid,
           'productName': _productNameController.text,
           'address': _addressText,
           'availableKilos': int.parse(_availableKilosController.text),
           'minAmount': double.parse(_minAmountController.text),
-          'timeDuration': _timeDuration,
-          'status': _productStatus, // Add product status field
+          'timeDuration': endTime.toIso8601String(),  // Store the end time as a DateTime string
+          'status': _productStatus,
           'imageUrl': imageUrl,
         });
         Navigator.pushReplacementNamed(context, '/sellerPage');
@@ -320,10 +322,10 @@ class _AddProductPageState extends State<AddProductPage> {
               keyboardType: TextInputType.number,
             ),
             SizedBox(height: 16),
-            DropdownButtonFormField<String>(
+            DropdownButtonFormField<int>(
               style: TextStyle(color: Colors.black),
               decoration: InputDecoration(
-                labelText: 'Time Duration',
+                labelText: 'Time Duration (hours)',
                 labelStyle: TextStyle(color: Colors.black),
                 border: OutlineInputBorder(),
                 focusedBorder: OutlineInputBorder(
@@ -333,16 +335,15 @@ class _AddProductPageState extends State<AddProductPage> {
                   borderSide: BorderSide(color: Colors.black),
                 ),
               ),
-              items: List.generate(
-                12,
-                (index) => (index + 1).toString() + (index + 1 == 1 ? 'hr' : 'hrs'),
-              ).map((duration) => DropdownMenuItem(
-                value: duration,
-                child: Text(duration),
-              )).toList(),
+              items: List.generate(12, (index) => index + 1)
+                  .map((duration) => DropdownMenuItem<int>(
+                        value: duration,
+                        child: Text('$duration hours'),
+                      ))
+                  .toList(),
               onChanged: (value) {
                 setState(() {
-                  _timeDuration = value;
+                  _timeDurationHours = value;
                 });
               },
             ),
