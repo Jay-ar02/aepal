@@ -337,7 +337,7 @@ class _SellerPageState extends State<SellerPage> {
                                     productId: productId,
                                     sellerName: sellerDetails['name']!,
                                     profileImageUrl: sellerDetails['profileImageUrl']!,
-                                    imageUrl: product['imageUrl'] ?? 'https://via.placeholder.com/150',
+                                    imageUrls: List<String>.from(product['imageUrls']), // Handling multiple images
                                     title: product['productName'],
                                     location: product['address'],
                                     availableKgs: product['availableKilos'],
@@ -543,12 +543,12 @@ class ProductCard extends StatelessWidget {
   final String productId;
   final String sellerName;
   final String profileImageUrl;
-  final String imageUrl;
+  final List<String> imageUrls; // Handling multiple images
   final String title;
   final String location;
   final int availableKgs;
   final double minAmount;
-  final DateTime? endTime;  // Updated to handle null value
+  final DateTime? endTime; // Updated to handle null value
   final String productStatus;
   final VoidCallback onPressed;
   final VoidCallback onLongPress;
@@ -557,7 +557,7 @@ class ProductCard extends StatelessWidget {
     required this.productId,
     required this.sellerName,
     required this.profileImageUrl,
-    required this.imageUrl,
+    required this.imageUrls,
     required this.title,
     required this.location,
     required this.availableKgs,
@@ -624,11 +624,36 @@ class ProductCard extends StatelessWidget {
               ),
               ClipRRect(
                 borderRadius: BorderRadius.vertical(top: Radius.circular(7), bottom: Radius.circular(7)),
-                child: Image.network(
-                  imageUrl,
-                  height: 110,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+                child: Stack(
+                  children: [
+                    Image.network(
+                      imageUrls.first,
+                      height: 110,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                    if (imageUrls.length > 1)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => ImageGalleryModal(imageUrls: imageUrls),
+                            );
+                          },
+                          child: Container(
+                            padding: EdgeInsets.all(4),
+                            color: Colors.black54,
+                            child: Text(
+                              'More...',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               Expanded(
@@ -724,5 +749,41 @@ class ProductCard extends StatelessWidget {
     String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
     String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
     return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+  }
+}
+
+class ImageGalleryModal extends StatelessWidget {
+  final List<String> imageUrls;
+
+  ImageGalleryModal({required this.imageUrls});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: imageUrls.map((url) {
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white,),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 }

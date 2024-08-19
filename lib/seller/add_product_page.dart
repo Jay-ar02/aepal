@@ -20,32 +20,36 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _availableKilosController = TextEditingController();
   final TextEditingController _minAmountController = TextEditingController();
   int? _timeDurationHours;
-  bool _isTimerEnabled = true; // Added to manage timer enable/disable
+  bool _isTimerEnabled = true;
   String _productStatus = 'BIDDING SOON';
-  File? _image;
+  List<File> _images = []; // List to store multiple images
   final ImagePicker _picker = ImagePicker();
   String _addressText = "Street, Barangay, Municipality";
 
   Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final pickedFiles = await _picker.pickMultiImage();
 
     setState(() {
-      if (pickedFile != null) {
-        _image = File(pickedFile.path);
+      if (pickedFiles != null) {
+        _images = pickedFiles.map((file) => File(file.path)).toList();
       }
     });
   }
 
-  Future<String?> _uploadImage(File image) async {
+  Future<List<String>> _uploadImages(List<File> images) async {
+    List<String> downloadUrls = [];
     try {
-      final storageRef = FirebaseStorage.instance.ref().child('product_images/${DateTime.now().toIso8601String()}');
-      final uploadTask = storageRef.putFile(image);
-      final snapshot = await uploadTask.whenComplete(() => null);
-      return await snapshot.ref.getDownloadURL();
+      for (var image in images) {
+        final storageRef = FirebaseStorage.instance.ref().child('product_images/${DateTime.now().toIso8601String()}_${image.path.split('/').last}');
+        final uploadTask = storageRef.putFile(image);
+        final snapshot = await uploadTask.whenComplete(() => null);
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+        downloadUrls.add(downloadUrl);
+      }
     } catch (e) {
-      print('Error uploading image: $e');
-      return null;
+      print('Error uploading images: $e');
     }
+    return downloadUrls;
   }
 
   Future<void> _addProduct(BuildContext context) async {
@@ -57,9 +61,9 @@ class _AddProductPageState extends State<AddProductPage> {
         final minAmount = _minAmountController.text.isNotEmpty ? double.parse(_minAmountController.text) : 0.0;
         final address = _addressText.isNotEmpty ? _addressText : 'Unknown Address';
 
-        String? imageUrl;
-        if (_image != null) {
-          imageUrl = await _uploadImage(_image!);
+        List<String> imageUrls = [];
+        if (_images.isNotEmpty) {
+          imageUrls = await _uploadImages(_images);
         }
 
         DateTime? endTime;
@@ -77,7 +81,7 @@ class _AddProductPageState extends State<AddProductPage> {
           'minAmount': minAmount,
           'timeDuration': endTime?.toIso8601String(),
           'status': _productStatus,
-          'imageUrl': imageUrl ?? 'https://via.placeholder.com/150',
+          'imageUrls': imageUrls, // Store the list of image URLs
         });
 
         Navigator.pushReplacementNamed(context, '/sellerPage');
@@ -185,7 +189,6 @@ class _AddProductPageState extends State<AddProductPage> {
               ),
             ),
             SizedBox(height: 16),
-            // Address Box
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -234,51 +237,47 @@ class _AddProductPageState extends State<AddProductPage> {
               height: 40,
             ),
             SizedBox(height: 16),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    height: 100,
-                    width: double.infinity,
-                    constraints: BoxConstraints(
-                      maxWidth: 400,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(8),
-                      image: _image != null
-                          ? DecorationImage(
-                              image: FileImage(_image!),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
-                    ),
-                    child: _image == null
-                        ? Center(
-                            child: Icon(
-                              Icons.image,
-                              size: 50,
-                              color: Colors.grey[700],
-                            ),
-                          )
-                        : null,
-                  ),
+            GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                height: 100,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                if (_image == null)
-                  Positioned(
-                    bottom: 8,
-                    child: Text(
-                      'Upload Image',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black.withOpacity(0.7),
+                child: _images.isEmpty
+                    ? Center(
+                        child: Icon(
+                          Icons.image,
+                          size: 50,
+                          color: Colors.grey[700],
+                        ),
+                      )
+                    : Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Image.file(
+                              _images.first,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          if (_images.length > 1)
+                            Positioned(
+                              bottom: 8,
+                              right: 8,
+                              child: Text(
+                                'More...',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  backgroundColor: Colors.black54,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                  ),
-              ],
+              ),
             ),
             SizedBox(height: 16),
             TextField(
@@ -365,7 +364,7 @@ class _AddProductPageState extends State<AddProductPage> {
                       setState(() {
                         _isTimerEnabled = value!;
                         if (!_isTimerEnabled) {
-                          _timeDurationHours = null; // Reset time duration when disabled
+                          _timeDurationHours = null;
                         }
                       });
                     },
@@ -402,9 +401,7 @@ class _AddProductPageState extends State<AddProductPage> {
                     value: _timeDurationHours,
                     isExpanded: true,
                     hint: Text(
-                      _isTimerEnabled
-                          ? 'Select Duration'
-                          : 'Disabled',
+                      _isTimerEnabled ? 'Select Duration' : 'Disabled',
                       style: TextStyle(color: _isTimerEnabled ? Colors.black : Colors.grey),
                     ),
                     disabledHint: Text(

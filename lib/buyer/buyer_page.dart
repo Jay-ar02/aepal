@@ -296,6 +296,7 @@ class _BuyerPageState extends State<BuyerPage> {
                       var product = products[index];
                       var productId = product.id;
                       var userId = product['userId'] ?? '';
+                      var imageUrls = List<String>.from(product['imageUrls']); // Handling multiple images
 
                       return FutureBuilder<Map<String, String>>(
                         future: _fetchSellerDetails(userId),
@@ -307,7 +308,7 @@ class _BuyerPageState extends State<BuyerPage> {
                           return ProductCard(
                             sellerName: sellerDetails['name']!,
                             profileImageUrl: sellerDetails['profileImageUrl']!,
-                            imageUrl: product['imageUrl'] ?? 'https://via.placeholder.com/150',
+                            imageUrls: imageUrls,
                             title: product['productName'],
                             location: product['address'],
                             availableKgs: product['availableKilos'],
@@ -463,7 +464,7 @@ class _BuyerPageState extends State<BuyerPage> {
 class ProductCard extends StatefulWidget {
   final String sellerName;
   final String profileImageUrl;
-  final String imageUrl;
+  final List<String> imageUrls; // Handling multiple images
   final String title;
   final String location;
   final int availableKgs;
@@ -477,7 +478,7 @@ class ProductCard extends StatefulWidget {
   const ProductCard({
     required this.sellerName,
     required this.profileImageUrl,
-    required this.imageUrl,
+    required this.imageUrls, // Handling multiple images
     required this.title,
     required this.location,
     required this.availableKgs,
@@ -589,11 +590,36 @@ class _ProductCardState extends State<ProductCard> {
             ),
             ClipRRect(
               borderRadius: BorderRadius.vertical(top: Radius.circular(7), bottom: Radius.circular(7)),
-              child: Image.network(
-                widget.imageUrl,
-                height: 110,
-                width: double.infinity,
-                fit: BoxFit.cover,
+              child: Stack(
+                children: [
+                  Image.network(
+                    widget.imageUrls.first, // Display the first image
+                    height: 110,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                  if (widget.imageUrls.length > 1)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => ImageGalleryModal(imageUrls: widget.imageUrls),
+                          );
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(4),
+                          color: Colors.black54,
+                          child: Text(
+                            'More...',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             Expanded(
@@ -865,6 +891,42 @@ class _ProductCardState extends State<ProductCard> {
           ],
         );
       },
+    );
+  }
+}
+
+class ImageGalleryModal extends StatelessWidget {
+  final List<String> imageUrls;
+
+  ImageGalleryModal({required this.imageUrls});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: imageUrls.map((url) {
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white,),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 }
