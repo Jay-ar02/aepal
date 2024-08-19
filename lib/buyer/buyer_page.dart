@@ -283,6 +283,13 @@ class _BuyerPageState extends State<BuyerPage> {
                     }).toList();
                   }
 
+                  products = products.where((product) {
+                    DateTime? scheduledDate = product['scheduledPostDate'] != null
+                        ? DateTime.parse(product['scheduledPostDate'])
+                        : null;
+                    return scheduledDate == null || DateTime.now().isAfter(scheduledDate);
+                  }).toList();
+
                   return GridView.builder(
                     padding: EdgeInsets.all(10),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -296,7 +303,7 @@ class _BuyerPageState extends State<BuyerPage> {
                       var product = products[index];
                       var productId = product.id;
                       var userId = product['userId'] ?? '';
-                      var imageUrls = List<String>.from(product['imageUrls']); // Handling multiple images
+                      var imageUrls = List<String>.from(product['imageUrls']); 
 
                       return FutureBuilder<Map<String, String>>(
                         future: _fetchSellerDetails(userId),
@@ -464,12 +471,12 @@ class _BuyerPageState extends State<BuyerPage> {
 class ProductCard extends StatefulWidget {
   final String sellerName;
   final String profileImageUrl;
-  final List<String> imageUrls; // Handling multiple images
+  final List<String> imageUrls; 
   final String title;
   final String location;
   final int availableKgs;
   final double minAmount;
-  final DateTime? endTime;  // Updated to handle null value
+  final DateTime? endTime; 
   final String productId;
   final String ownerId;
   final String productStatus;
@@ -478,12 +485,12 @@ class ProductCard extends StatefulWidget {
   const ProductCard({
     required this.sellerName,
     required this.profileImageUrl,
-    required this.imageUrls, // Handling multiple images
+    required this.imageUrls,
     required this.title,
     required this.location,
     required this.availableKgs,
     required this.minAmount,
-    this.endTime,  // Updated to handle null value
+    this.endTime,
     required this.productId,
     required this.ownerId,
     required this.productStatus,
@@ -593,7 +600,7 @@ class _ProductCardState extends State<ProductCard> {
               child: Stack(
                 children: [
                   Image.network(
-                    widget.imageUrls.first, // Display the first image
+                    widget.imageUrls.first, 
                     height: 110,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -906,26 +913,33 @@ class ImageGalleryModal extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: imageUrls.map((url) {
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white,),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  url,
-                  fit: BoxFit.cover,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6, 
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: imageUrls.map((url) {
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white,),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }

@@ -9,6 +9,7 @@ import 'dart:io';
 import 'add_address_page.dart';
 import 'edit_address_page.dart';
 import 'seller_page.dart';
+import 'package:intl/intl.dart';
 
 class AddProductPage extends StatefulWidget {
   @override
@@ -22,9 +23,11 @@ class _AddProductPageState extends State<AddProductPage> {
   int? _timeDurationHours;
   bool _isTimerEnabled = true;
   String _productStatus = 'BIDDING SOON';
-  List<File> _images = []; // List to store multiple images
+  List<File> _images = []; 
   final ImagePicker _picker = ImagePicker();
   String _addressText = "Street, Barangay, Municipality";
+
+  DateTime? _selectedScheduleDate; // New field for scheduling
 
   Future<void> _pickImage() async {
     final pickedFiles = await _picker.pickMultiImage();
@@ -81,7 +84,8 @@ class _AddProductPageState extends State<AddProductPage> {
           'minAmount': minAmount,
           'timeDuration': endTime?.toIso8601String(),
           'status': _productStatus,
-          'imageUrls': imageUrls, // Store the list of image URLs
+          'imageUrls': imageUrls,
+          'scheduledPostDate': _selectedScheduleDate?.toIso8601String(), // Schedule field
         });
 
         Navigator.pushReplacementNamed(context, '/sellerPage');
@@ -90,6 +94,32 @@ class _AddProductPageState extends State<AddProductPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to add product. Please try again.')),
         );
+      }
+    }
+  }
+
+  Future<void> _selectScheduleDate(BuildContext context) async {
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+    );
+    if (selectedDate != null) {
+      final selectedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+      if (selectedTime != null) {
+        setState(() {
+          _selectedScheduleDate = DateTime(
+            selectedDate.year,
+            selectedDate.month,
+            selectedDate.day,
+            selectedTime.hour,
+            selectedTime.minute,
+          );
+        });
       }
     }
   }
@@ -411,6 +441,30 @@ class _AddProductPageState extends State<AddProductPage> {
                   ),
                 ),
               ],
+            ),
+            SizedBox(height: 16),
+            GestureDetector(
+              onTap: () => _selectScheduleDate(context),
+              child: AbsorbPointer(
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Schedule Post Date',
+                    labelStyle: TextStyle(color: Colors.black),
+                    border: OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black),
+                    ),
+                  ),
+                  controller: TextEditingController(
+                    text: _selectedScheduleDate != null
+                        ? DateFormat('yyyy-MM-dd – kk:mm').format(_selectedScheduleDate!)
+                        : 'Select Date & Time',
+                  ),
+                ),
+              ),
             ),
             SizedBox(height: 16),
             DropdownButtonFormField<String>(

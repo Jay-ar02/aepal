@@ -10,6 +10,7 @@ import 'edit_product_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:badges/badges.dart' as badges;
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(MyApp());
@@ -265,7 +266,6 @@ class _SellerPageState extends State<SellerPage> {
                 ],
               ),
             ),
-            SearchBar(),
             Padding(
               padding: const EdgeInsets.all(10.0),
               child: Text(
@@ -317,7 +317,7 @@ class _SellerPageState extends State<SellerPage> {
                               crossAxisCount: 2,
                               crossAxisSpacing: 10,
                               mainAxisSpacing: 10,
-                              childAspectRatio: 0.62,
+                              childAspectRatio: 0.61,
                             ),
                             itemCount: products.length,
                             itemBuilder: (context, index) {
@@ -325,6 +325,10 @@ class _SellerPageState extends State<SellerPage> {
                               var productId = product.id;
                               var userId = product['userId'] ?? '';
                               var productData = product.data() as Map<String, dynamic>;
+                              DateTime? scheduledDate = product['scheduledPostDate'] != null
+                                  ? DateTime.parse(product['scheduledPostDate'])
+                                  : null;
+                              bool isScheduled = scheduledDate != null && DateTime.now().isBefore(scheduledDate);
 
                               return FutureBuilder<Map<String, String>>(
                                 future: _fetchSellerDetails(userId),
@@ -337,7 +341,7 @@ class _SellerPageState extends State<SellerPage> {
                                     productId: productId,
                                     sellerName: sellerDetails['name']!,
                                     profileImageUrl: sellerDetails['profileImageUrl']!,
-                                    imageUrls: List<String>.from(product['imageUrls']), // Handling multiple images
+                                    imageUrls: List<String>.from(product['imageUrls']), 
                                     title: product['productName'],
                                     location: product['address'],
                                     availableKgs: product['availableKilos'],
@@ -346,12 +350,15 @@ class _SellerPageState extends State<SellerPage> {
                                         ? DateTime.parse(product['timeDuration'])
                                         : null,
                                     productStatus: product['status'],
+                                    scheduledDate: scheduledDate, 
                                     onPressed: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        '/viewBidders',
-                                        arguments: {'productId': productId},
-                                      );
+                                      if (!isScheduled) {
+                                        Navigator.pushNamed(
+                                          context,
+                                          '/viewBidders',
+                                          arguments: {'productId': productId},
+                                        );
+                                      }
                                     },
                                     onLongPress: () {
                                       _showProductOptionsDialog(context, productId, productData);
@@ -408,148 +415,18 @@ class _SellerPageState extends State<SellerPage> {
   }
 }
 
-class SearchBar extends StatefulWidget {
-  @override
-  _SearchBarState createState() => _SearchBarState();
-}
-
-class _SearchBarState extends State<SearchBar> {
-  final TextEditingController _controller = TextEditingController();
-  final StreamController<String> _searchStreamController = StreamController<String>();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _searchStreamController.close();
-    super.dispose();
-  }
-
-  void _onSearchChanged(String query) {
-    _searchStreamController.add(query);
-  }
-
-  Stream<List<Map<String, dynamic>>> _search(String query) async* {
-    if (query.isEmpty) {
-      yield [];
-    } else {
-      final userResults = await FirebaseFirestore.instance
-          .collection('users')
-          .where('firstName', isGreaterThanOrEqualTo: query)
-          .where('firstName', isLessThanOrEqualTo: query + '\uf8ff')
-          .get();
-
-      final productResults = await FirebaseFirestore.instance
-          .collection('products')
-          .where('productName', isGreaterThanOrEqualTo: query)
-          .where('productName', isLessThanOrEqualTo: query + '\uf8ff')
-          .get();
-
-      final combinedResults = [
-        ...userResults.docs.map((doc) => {
-              'type': 'user',
-              'firstName': doc['firstName'],
-              'lastName': doc['lastName'],
-              'uid': doc.id,
-            }),
-        ...productResults.docs.map((doc) => {
-              'type': 'product',
-              'productName': doc['productName'],
-              'productId': doc.id,
-            }),
-      ];
-
-      yield combinedResults;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            controller: _controller,
-            onChanged: _onSearchChanged,
-            decoration: InputDecoration(
-              hintText: 'Search here',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.black),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.black),
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            ),
-          ),
-        ),
-        StreamBuilder<String>(
-          stream: _searchStreamController.stream,
-          builder: (context, snapshot) {
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Container();
-            }
-
-            return StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _search(snapshot.data!),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator(color: Colors.green));
-                }
-
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-
-                final results = snapshot.data ?? [];
-                if (results.isEmpty) {
-                  return Center(child: Text('No results found'));
-                }
-
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: results.length,
-                  itemBuilder: (context, index) {
-                    final result = results[index];
-                    if (result['type'] == 'user') {
-                      return ListTile(
-                        title: Text('${result['firstName']} ${result['lastName']}'),
-                        subtitle: Text('User ID: ${result['uid']}'),
-                        onTap: () {},
-                      );
-                    } else {
-                      return ListTile(
-                        title: Text(result['productName']),
-                        subtitle: Text('Product ID: ${result['productId']}'),
-                        onTap: () {},
-                      );
-                    }
-                  },
-                );
-              },
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
 class ProductCard extends StatelessWidget {
   final String productId;
   final String sellerName;
   final String profileImageUrl;
-  final List<String> imageUrls; // Handling multiple images
+  final List<String> imageUrls; 
   final String title;
   final String location;
   final int availableKgs;
   final double minAmount;
-  final DateTime? endTime; // Updated to handle null value
+  final DateTime? endTime;
   final String productStatus;
+  final DateTime? scheduledDate; 
   final VoidCallback onPressed;
   final VoidCallback onLongPress;
 
@@ -564,6 +441,7 @@ class ProductCard extends StatelessWidget {
     required this.minAmount,
     this.endTime,
     required this.productStatus,
+    this.scheduledDate,
     required this.onPressed,
     required this.onLongPress,
   });
@@ -710,15 +588,32 @@ class ProductCard extends StatelessWidget {
                       SizedBox(height: 8),
                       Container(
                         width: double.infinity,
-                        height: 30,
+                        height: (scheduledDate != null && DateTime.now().isBefore(scheduledDate!)) ? 40 : 30, // Adjusted height
                         child: ElevatedButton(
-                          onPressed: productStatus == 'BIDDING SOON' ? null : onPressed,
-                          child: Text(
-                            productStatus == 'BIDDING SOON' ? 'BIDDING SOON' : 'VIEW BIDDERS',
-                            style: TextStyle(color: Colors.white),
+                          onPressed: scheduledDate == null || DateTime.now().isAfter(scheduledDate!)
+                              ? onPressed
+                              : null,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                scheduledDate == null || DateTime.now().isAfter(scheduledDate!)
+                                    ? 'VIEW BIDDERS'
+                                    : 'SCHEDULED',
+                                style: TextStyle(color: Colors.white, fontSize: 12),
+                              ),
+                              if (scheduledDate != null && DateTime.now().isBefore(scheduledDate!))
+                                Text(
+                                  DateFormat('MMM d, hh:mm a').format(scheduledDate!),
+                                  style: TextStyle(color: Colors.red[300], fontSize: 9),
+                                ),
+                            ],
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: productStatus == 'BIDDING SOON' ? Colors.grey : Colors.green,
+                            backgroundColor: scheduledDate == null || DateTime.now().isAfter(scheduledDate!)
+                                ? Colors.green
+                                : Colors.grey,
+                            padding: EdgeInsets.symmetric(vertical: 4),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.zero,
                             ),
@@ -763,26 +658,33 @@ class ImageGalleryModal extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: imageUrls.map((url) {
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white,),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  url,
-                  fit: BoxFit.cover,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6, // set a max height for the dialog
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: imageUrls.map((url) {
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white,),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          );
-        }).toList(),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }
