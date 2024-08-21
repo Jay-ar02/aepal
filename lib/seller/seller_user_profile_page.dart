@@ -2,12 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'buyer_comments_page.dart';
+import 'seller_comments_page.dart';
 
-class BuyerUserProfilePage extends StatelessWidget {
+class SellerUserProfilePage extends StatelessWidget {
   final String userId;
 
-  const BuyerUserProfilePage({required this.userId});
+  const SellerUserProfilePage({required this.userId});
 
   Future<Map<String, dynamic>?> _fetchUserData() async {
     DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
@@ -21,7 +21,7 @@ class BuyerUserProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Buyer Profile'),
+        title: Text('Seller Profile'),
       ),
       body: FutureBuilder<Map<String, dynamic>?>(
         future: _fetchUserData(),
@@ -31,10 +31,13 @@ class BuyerUserProfilePage extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data == null) {
-            return Center(child: Text('User not found'));
+            return Center(child: Text('Seller not found'));
           }
 
           final userData = snapshot.data!;
+          final double rating = (userData['rating'] ?? 0).toDouble();
+          final int totalRatings = userData['totalRatings'] ?? 0;
+          final String averageRating = totalRatings > 0 ? (rating / totalRatings).toStringAsFixed(1) : '0.0';
 
           return SingleChildScrollView(
             child: Column(
@@ -78,27 +81,38 @@ class BuyerUserProfilePage extends StatelessWidget {
                                 ),
                               ),
                               Row(
-                                children: List.generate(5, (index) {
-                                  return Icon(
-                                    index < (userData['rating'] ?? 0)
-                                        ? Icons.star
-                                        : Icons.star_border,
-                                    color: Colors.yellow[600],
-                                  );
-                                }),
+                                children: [
+                                  Row(
+                                    children: List.generate(5, (index) {
+                                      return Icon(
+                                        index < rating ? Icons.star : Icons.star_border,
+                                        color: Colors.yellow[600],
+                                      );
+                                    }),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    averageRating,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ],
                               ),
                               TextButton(
                                 style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white, padding: EdgeInsets.zero,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.zero,
                                   textStyle: TextStyle(
-                                    fontSize: 14, // Make text smaller
+                                    fontSize: 14,
                                   ),
                                 ),
                                 onPressed: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => BuyerCommentsPage(userId: userId),
+                                      builder: (context) => SellerCommentsPage(userId: userId),
                                     ),
                                   );
                                 },

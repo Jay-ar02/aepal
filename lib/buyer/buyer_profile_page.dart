@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'buyer_notification_page.dart';
 import 'buyer_page.dart';
 import '../seller/seller_page.dart';
+import 'buyer_comments_page.dart';
 
 class BuyerProfilePage extends StatefulWidget {
   @override
@@ -15,8 +16,8 @@ class BuyerProfilePage extends StatefulWidget {
 }
 
 class _BuyerProfilePageState extends State<BuyerProfilePage> {
-  int _selectedIndex = 2; 
-  int _selectedButtonIndex = 0; 
+  int _selectedIndex = 2;
+  int _selectedButtonIndex = 0;
   int _unreadNotifications = 0;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -32,7 +33,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
   void initState() {
     super.initState();
     _fetchUserData();
-    _fetchNotifications(); 
+    _fetchNotifications();
     _fetchUserPosts();
     _fetchUserImages();
   }
@@ -46,7 +47,8 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
         setState(() {
           _userData = userDoc.data() as Map<String, dynamic>?;
           _firstName = _userData?['firstName'] ?? 'Profile';
-          _profileImageUrl = _userData?['profileImage'] ?? 'https://via.placeholder.com/150';
+          _profileImageUrl =
+              _userData?['profileImage'] ?? 'https://via.placeholder.com/150';
         });
       }
     }
@@ -169,7 +171,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.pop(context); 
+            Navigator.pop(context);
           },
         ),
         actions: [
@@ -180,7 +182,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                 context: context,
                 builder: (BuildContext context) {
                   return AlertDialog(
-                    backgroundColor: Colors.white, 
+                    backgroundColor: Colors.white,
                     title: Text("Logout"),
                     content: Text("Are you sure you want to logout?"),
                     actions: [
@@ -190,7 +192,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                         },
                         child: Text("No"),
                         style: TextButton.styleFrom(
-                          foregroundColor: Colors.red, 
+                          foregroundColor: Colors.red,
                         ),
                       ),
                       TextButton(
@@ -201,7 +203,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                         },
                         child: Text("Yes"),
                         style: TextButton.styleFrom(
-                          foregroundColor: Colors.green, 
+                          foregroundColor: Colors.green,
                         ),
                       ),
                     ],
@@ -244,16 +246,15 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                         ],
                       ),
                     ),
-                    
                     Stack(
                       children: [
                         Container(
-                          height: 220, 
+                          height: 220,
                           color: Colors.green,
                         ),
                         Positioned(
                           top: 16,
-                          left: -23, 
+                          left: -23,
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: TextButton(
@@ -284,7 +285,8 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                                     'Start Selling',
                                     style: TextStyle(color: Colors.black),
                                   ),
-                                  Icon(Icons.arrow_forward, size: 16, color: Colors.black),
+                                  Icon(Icons.arrow_forward,
+                                      size: 16, color: Colors.black),
                                 ],
                               ),
                             ),
@@ -301,7 +303,8 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                                   CircleAvatar(
                                     radius: 50,
                                     backgroundImage: _userData?['profileImage'] != null
-                                        ? NetworkImage(_userData?['profileImage'])
+                                        ? NetworkImage(
+                                            _userData?['profileImage'])
                                         : null,
                                     backgroundColor: Colors.grey.shade200,
                                     child: _userData?['profileImage'] == null
@@ -343,13 +346,37 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    _userData?['email'] ?? 'Email',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 16,
+                                  Row(
+                                    children: List.generate(5, (index) {
+                                      return Icon(
+                                        index <
+                                                (_userData?['rating'] ?? 0)
+                                            ? Icons.star
+                                            : Icons.star_border,
+                                        color: Colors.yellow[600],
+                                      );
+                                    }),
+                                  ),
+                                  TextButton(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.zero,
+                                      textStyle: TextStyle(
+                                        fontSize: 14,
+                                      ),
                                     ),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              BuyerCommentsPage(
+                                                  userId: _auth.currentUser!
+                                                      .uid),
+                                        ),
+                                      );
+                                    },
+                                    child: Text('View Comments >'),
                                   ),
                                 ],
                               ),
@@ -358,7 +385,6 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                         ),
                       ],
                     ),
-                    
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -368,11 +394,13 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              _buildSelectableButton('Posts', 0, Icons.post_add),
-                              _buildSelectableButton('Images', 1, Icons.image),
+                              _buildSelectableButton(
+                                  'Posts', 0, Icons.post_add),
+                              _buildSelectableButton(
+                                  'Images', 1, Icons.image),
                             ],
                           ),
-                          Divider(thickness: 2), 
+                          Divider(thickness: 2),
                           SizedBox(height: 16),
                           Text(
                             'Details',
@@ -416,7 +444,8 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
-                                    icon: Icon(Icons.edit, color: Colors.white),
+                                    icon:
+                                        Icon(Icons.edit, color: Colors.white),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green,
                                     ),
@@ -437,7 +466,7 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                                     ),
                                   ),
                                 ),
-                                Divider(thickness: 2), 
+                                Divider(thickness: 2),
                                 if (_selectedButtonIndex == 0) ...[
                                   Text(
                                     'Posts',
@@ -447,13 +476,15 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                                     ),
                                   ),
                                   ..._userPosts.map((post) => ListTile(
-                                        title: Text(post['productName']),
+                                        title:
+                                            Text(post['productName']),
                                         subtitle: Text(
                                             'Available Kilos: ${post['availableKilos']}'),
                                       )),
                                 ] else if (_selectedButtonIndex == 1) ...[
                                   Padding(
-                                    padding: const EdgeInsets.only(left: 16.0, top: 16.0),
+                                    padding: const EdgeInsets.only(
+                                        left: 16.0, top: 16.0),
                                     child: Text(
                                       'Images',
                                       style: TextStyle(
@@ -462,10 +493,11 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
                                       ),
                                     ),
                                   ),
-                                  SizedBox(height: 10), 
+                                  SizedBox(height: 10),
                                   GridView.builder(
                                     shrinkWrap: true,
-                                    physics: NeverScrollableScrollPhysics(),
+                                    physics:
+                                        NeverScrollableScrollPhysics(),
                                     gridDelegate:
                                         SliverGridDelegateWithFixedCrossAxisCount(
                                       crossAxisCount: 2,
@@ -537,7 +569,8 @@ class _BuyerProfilePageState extends State<BuyerProfilePage> {
         children: [
           Icon(
             iconData,
-            color: _selectedButtonIndex == index ? Colors.green : Colors.grey,
+            color:
+                _selectedButtonIndex == index ? Colors.green : Colors.grey,
           ),
           Text(
             title,

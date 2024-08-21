@@ -3,8 +3,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'buyer_page.dart'; // Import BuyerPage to use as Home page
-import 'buyer_profile_page.dart'; // Import BuyerProfilePage
+import 'buyer_page.dart';
+import 'buyer_profile_page.dart';
 import 'package:badges/badges.dart' as badges;
 
 class BuyerNotificationPage extends StatefulWidget {
@@ -13,7 +13,7 @@ class BuyerNotificationPage extends StatefulWidget {
 }
 
 class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
-  int _selectedIndex = 1; // Initially set to 1 (Notifications tab)
+  int _selectedIndex = 1;
   List<DocumentSnapshot> _notifications = [];
   bool _loading = true;
   int _unreadCount = 0;
@@ -31,8 +31,7 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
-        DocumentSnapshot userDoc =
-            await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         if (userDoc.exists) {
           setState(() {
             _firstName = userDoc['firstName'] ?? 'Profile';
@@ -60,9 +59,12 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
         _unreadCount = notifications.docs.where((doc) => doc['read'] == false).length;
         _loading = false;
 
-        // Mark all notifications as read when loaded
         for (var doc in notifications.docs) {
-          if (doc['read'] == false) {
+          final data = doc.data() as Map<String, dynamic>?;
+          if (data != null && !data.containsKey('orderReceived')) {
+            doc.reference.update({'orderReceived': false});
+          }
+          if (data != null && doc['read'] == false) {
             doc.reference.update({'read': true});
           }
         }
@@ -90,6 +92,7 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
           return {
             'productId': productId,
             'productName': productData?['productName'] ?? '',
+            'ownerId': productData?['userId'] ?? '',
             'message': message
                 .replaceAll('contactNumber', ownerData?['contactNumber'] ?? 'Unknown')
                 .replaceAll('firstName', ownerData?['firstName'] ?? 'Unknown')
@@ -105,10 +108,152 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
     return {
       'productId': '',
       'productName': '',
+      'ownerId': '',
       'message': '',
       'timestamp': timestamp,
       'read': false,
     };
+  }
+
+  Future<void> _rateSeller(String sellerId, double rating, String? comment) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final userData = userDoc.data();
+
+      final sellerDoc = FirebaseFirestore.instance.collection('users').doc(sellerId);
+      final commentsCollection = FirebaseFirestore.instance.collection('sellers').doc(sellerId).collection('comments');
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot sellerSnapshot = await transaction.get(sellerDoc);
+
+        if (!sellerSnapshot.exists) {
+          throw Exception("Seller not found");
+        }
+
+        Map<String, dynamic>? sellerData = sellerSnapshot.data() as Map<String, dynamic>?;
+        double currentRating = sellerData?['rating'] ?? 0.0;
+        int totalRatings = sellerData?['totalRatings'] ?? 0;
+
+        double newAverageRating = (currentRating * totalRatings + rating) / (totalRatings + 1);
+
+        transaction.update(sellerDoc, {
+          'rating': newAverageRating,
+          'totalRatings': totalRatings + 1,
+        });
+
+        if (comment != null && comment.isNotEmpty) {
+          await commentsCollection.add({
+            'userId': user.uid,
+            'firstName': userData?['firstName'] ?? 'Anonymous',
+            'lastName': userData?['lastName'] ?? '',
+            'profileImage': userData?['profileImage'] ?? 'https://via.placeholder.com/150',
+            'rating': rating,
+            'comment': comment,
+            'date': DateTime.now().toString(),
+          });
+        }
+      });
+
+      print("Seller rated successfully");
+    } catch (e) {
+      print("Error rating seller: $e");
+    }
+  }
+
+  void _showRatingDialog(String sellerId) {
+    double _rating = 3.0;
+    TextEditingController _commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              title: Text('Rate Seller'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Select Rating'),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return IconButton(
+                        icon: Icon(
+                          index < _rating ? Icons.star : Icons.star_border,
+                          color: Colors.yellow[800],
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _rating = index + 1.0;
+                          });
+                        },
+                      );
+                    }),
+                  ),
+                  TextField(
+                    controller: _commentController,
+                    decoration: InputDecoration(labelText: 'Leave a comment (optional)'),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Cancel'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await _rateSeller(sellerId, _rating, _commentController.text);
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Submit'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.green),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showOrderReceivedDialog(String sellerId, VoidCallback onOrderReceived) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Confirm Order'),
+          content: Text('Have you received your order?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('No'),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+            ),
+            TextButton(
+              onPressed: () {
+                onOrderReceived();
+                Navigator.of(context).pop();
+                _showRatingDialog(sellerId);
+              },
+              child: Text('Yes'),
+              style: TextButton.styleFrom(foregroundColor: Colors.green),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _deleteNotification(DocumentSnapshot notification) async {
@@ -177,7 +322,6 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Buyer Mode Container
                   Container(
                     width: double.infinity,
                     color: Colors.green[100],
@@ -198,8 +342,6 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
                       ],
                     ),
                   ),
-
-                  // Notifications List
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -209,7 +351,7 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
                               itemCount: _notifications.length,
                               itemBuilder: (context, index) {
                                 final notification = _notifications[index];
-                                final productId = notification['productId'] ?? ''; // Handle missing field
+                                final productId = notification['productId'] ?? '';
                                 final timestamp = notification['timestamp'] as Timestamp?;
 
                                 return Dismissible(
@@ -264,10 +406,25 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
                                       }
 
                                       final data = snapshot.data!;
+                                      final notificationData = notification.data() as Map<String, dynamic>?;
+
                                       return NotificationCard(
                                         productName: data['productName'],
                                         message: data['message'],
                                         timestamp: data['timestamp'].toDate().toString(),
+                                        sellerId: data['ownerId'],
+                                        showOrderReceivedButton: data['message'].contains('you are the winner of the bidding'),
+                                        onOrderReceived: () => _showOrderReceivedDialog(
+                                          data['ownerId'],
+                                          () {
+                                            setState(() {
+                                              notification.reference.update({'orderReceived': true});
+                                            });
+                                          },
+                                        ),
+                                        orderReceived: notificationData?.containsKey('orderReceived') == true 
+                                            ? notificationData!['orderReceived'] 
+                                            : false,
                                       );
                                     },
                                   ),
@@ -320,11 +477,19 @@ class NotificationCard extends StatelessWidget {
   final String productName;
   final String message;
   final String timestamp;
+  final String sellerId;
+  final bool showOrderReceivedButton;
+  final VoidCallback onOrderReceived;
+  final bool orderReceived;
 
   const NotificationCard({
     required this.productName,
     required this.message,
     required this.timestamp,
+    required this.sellerId,
+    required this.showOrderReceivedButton,
+    required this.onOrderReceived,
+    this.orderReceived = false, // Default value set to false
   });
 
   @override
@@ -357,6 +522,38 @@ class NotificationCard extends StatelessWidget {
               'Date: $timestamp',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
+            if (showOrderReceivedButton && !orderReceived) ...[
+              SizedBox(height: 16),
+              Align(
+                alignment: Alignment.bottomRight,
+                child: ElevatedButton(
+                  onPressed: onOrderReceived,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
+                  child: Text(
+                    'Order Received?',
+                    style: TextStyle(color: Colors.white), // Set text color to white
+                  ),
+                ),
+              ),
+            ],
+            if (orderReceived) ...[
+              SizedBox(height: 16),
+              Align(
+                alignment: Alignment.bottomRight,
+                child: ElevatedButton(
+                  onPressed: null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                  ),
+                  child: Text(
+                    'Order Received!',
+                    style: TextStyle(color: Colors.white), // Set text color to white
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

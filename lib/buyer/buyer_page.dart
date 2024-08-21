@@ -9,6 +9,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'buyer_profile_page.dart';
 import 'buyer_search_page.dart';
 import 'package:aepal/seller/view_bidders_page.dart';
+import '../seller/seller_user_profile_page.dart'; 
 
 class BuyerPage extends StatefulWidget {
   final bool showSuccessNotification;
@@ -534,46 +535,52 @@ class _ProductCardState extends State<ProductCard> {
               padding: const EdgeInsets.all(8.0),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    backgroundImage: NetworkImage(widget.profileImageUrl),
-                    radius: 20,
+                  GestureDetector(
+                    onTap: () => _navigateToSellerProfile(context), // Navigate on tap
+                    child: CircleAvatar(
+                      backgroundImage: NetworkImage(widget.profileImageUrl),
+                      radius: 20,
+                    ),
                   ),
                   SizedBox(width: 8),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.sellerName,
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on, color: Colors.blue, size: 16),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: widget.onAddressTap,
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        widget.location,
-                                        style: TextStyle(
-                                          fontStyle: FontStyle.italic,
-                                          color: Colors.blue,
+                    child: GestureDetector(
+                      onTap: () => _navigateToSellerProfile(context), // Navigate on tap
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.sellerName,
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on, color: Colors.blue, size: 16),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: widget.onAddressTap,
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          widget.location,
+                                          style: TextStyle(
+                                            fontStyle: FontStyle.italic,
+                                            color: Colors.blue,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                    Icon(Icons.arrow_forward_ios, color: Colors.blue, size: 12),
-                                  ],
+                                      Icon(Icons.arrow_forward_ios, color: Colors.blue, size: 12),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   if (widget.productStatus == 'BIDDING SOON')
@@ -898,6 +905,15 @@ class _ProductCardState extends State<ProductCard> {
           ],
         );
       },
+    );
+  }
+
+  void _navigateToSellerProfile(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SellerUserProfilePage(userId: widget.ownerId), // Pass the ownerId to the profile page
+      ),
     );
   }
 }

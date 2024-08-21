@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'seller_edit_details_page.dart';
+import 'seller_comments_page.dart'; // Import the SellerCommentsPage
 
 class SellerProfilePage extends StatefulWidget {
   @override
@@ -351,13 +352,36 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    _userData?['email'] ?? 'Email',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 16,
+                                  Row(
+                                    children: List.generate(5, (index) {
+                                      return Icon(
+                                        index <
+                                                (_userData?['rating'] ?? 0)
+                                            ? Icons.star
+                                            : Icons.star_border,
+                                        color: Colors.yellow[600],
+                                      );
+                                    }),
+                                  ),
+                                  TextButton(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      padding: EdgeInsets.zero,
+                                      textStyle: TextStyle(
+                                        fontSize: 14,
+                                      ),
                                     ),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              SellerCommentsPage(
+                                                  userId: _currentUser!.uid),
+                                        ),
+                                      );
+                                    },
+                                    child: Text('View Comments >'),
                                   ),
                                 ],
                               ),
