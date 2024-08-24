@@ -115,53 +115,57 @@ class _BuyerNotificationPageState extends State<BuyerNotificationPage> {
     };
   }
 
-  Future<void> _rateSeller(String sellerId, double rating, String? comment) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+ Future<void> _rateSeller(String sellerId, double rating, String? comment) async {
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      final userData = userDoc.data();
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    final userData = userDoc.data();
 
-      final sellerDoc = FirebaseFirestore.instance.collection('users').doc(sellerId);
-      final commentsCollection = FirebaseFirestore.instance.collection('sellers').doc(sellerId).collection('comments');
+    final sellerDocRef = FirebaseFirestore.instance.collection('users').doc(sellerId);
+    final commentsCollectionRef = FirebaseFirestore.instance
+        .collection('sellers')
+        .doc(sellerId)
+        .collection('comments');
 
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        DocumentSnapshot sellerSnapshot = await transaction.get(sellerDoc);
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      DocumentSnapshot sellerSnapshot = await transaction.get(sellerDocRef);
 
-        if (!sellerSnapshot.exists) {
-          throw Exception("Seller not found");
-        }
+      if (!sellerSnapshot.exists) {
+        throw Exception("Seller not found");
+      }
 
-        Map<String, dynamic>? sellerData = sellerSnapshot.data() as Map<String, dynamic>?;
-        double currentRating = sellerData?['rating'] ?? 0.0;
-        int totalRatings = sellerData?['totalRatings'] ?? 0;
+      Map<String, dynamic>? sellerData = sellerSnapshot.data() as Map<String, dynamic>?;
+      double currentRating = (sellerData?['rating'] ?? 0.0).toDouble(); // Ensures rating is treated as double
+      int totalRatings = (sellerData?['totalRatings'] ?? 0).toInt();  // Ensures totalRatings is treated as int
 
-        double newAverageRating = (currentRating * totalRatings + rating) / (totalRatings + 1);
+      double newAverageRating = (currentRating * totalRatings + rating) / (totalRatings + 1);
 
-        transaction.update(sellerDoc, {
-          'rating': newAverageRating,
-          'totalRatings': totalRatings + 1,
-        });
-
-        if (comment != null && comment.isNotEmpty) {
-          await commentsCollection.add({
-            'userId': user.uid,
-            'firstName': userData?['firstName'] ?? 'Anonymous',
-            'lastName': userData?['lastName'] ?? '',
-            'profileImage': userData?['profileImage'] ?? 'https://via.placeholder.com/150',
-            'rating': rating,
-            'comment': comment,
-            'date': DateTime.now().toString(),
-          });
-        }
+      transaction.update(sellerDocRef, {
+        'rating': newAverageRating,
+        'totalRatings': totalRatings + 1,
       });
 
-      print("Seller rated successfully");
-    } catch (e) {
-      print("Error rating seller: $e");
-    }
+      if (comment != null && comment.isNotEmpty) {
+        final newCommentRef = commentsCollectionRef.doc(); // Create a new document
+        transaction.set(newCommentRef, {
+          'userId': user.uid,
+          'firstName': userData?['firstName'] ?? 'Anonymous',
+          'lastName': userData?['lastName'] ?? '',
+          'profileImage': userData?['profileImage'] ?? 'https://via.placeholder.com/150',
+          'rating': rating,
+          'comment': comment,
+          'date': Timestamp.now(),
+        });
+      }
+    });
+
+    print("Seller rated and comment stored successfully");
+  } catch (e) {
+    print("Error rating seller: $e");
   }
+}
 
   void _showRatingDialog(String sellerId) {
     double _rating = 3.0;

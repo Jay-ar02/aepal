@@ -9,11 +9,11 @@ class SellerCommentsPage extends StatelessWidget {
   const SellerCommentsPage({required this.userId});
 
   Future<List<Map<String, dynamic>>> _fetchComments() async {
-    // Fetch comments for the seller
     QuerySnapshot commentsSnapshot = await FirebaseFirestore.instance
         .collection('sellers')
         .doc(userId)
         .collection('comments')
+        .orderBy('date', descending: true)
         .get();
 
     List<Map<String, dynamic>> comments = [];
@@ -21,26 +21,9 @@ class SellerCommentsPage extends StatelessWidget {
     for (var commentDoc in commentsSnapshot.docs) {
       Map<String, dynamic> commentData = commentDoc.data() as Map<String, dynamic>;
 
-      // Calculate the average rating for the comment
-      QuerySnapshot ratingSnapshot = await FirebaseFirestore.instance
-          .collection('sellers')
-          .doc(userId)
-          .collection('comments')
-          .where('userId', isEqualTo: commentData['userId'])
-          .get();
+      // Convert Timestamp to readable format
+      commentData['date'] = (commentData['date'] as Timestamp).toDate().toString();
 
-      if (ratingSnapshot.docs.isNotEmpty) {
-        double averageRating = ratingSnapshot.docs
-            .map((doc) => doc['rating'] as double)
-            .reduce((a, b) => a + b) /
-            ratingSnapshot.docs.length;
-
-        commentData['averageRating'] = averageRating;
-      } else {
-        commentData['averageRating'] = 0.0;
-      }
-
-      // Add comment data to the list
       comments.add(commentData);
     }
 
@@ -72,7 +55,7 @@ class SellerCommentsPage extends StatelessWidget {
               final comment = comments[index];
 
               final rating = comment['rating'] as double? ?? 0.0;
-              final averageRating = comment['averageRating']?.toStringAsFixed(1) ?? '0.0';
+              final averageRating = rating.toStringAsFixed(1);
               final commentText = comment['comment'] ?? 'No Comment';
               final date = comment['date'] ?? 'N/A';
               final firstName = comment['firstName'] ?? 'Anonymous';

@@ -183,7 +183,7 @@ class _ViewBiddersPageState extends State<ViewBiddersPage> {
                                             Row(
                                               children: List.generate(5, (starIndex) {
                                                 return Icon(
-                                                  starIndex < (userData['rating'] ?? 0)
+                                                  starIndex < (userData['rating']?.toInt() ?? 0)  // Cast to int
                                                       ? Icons.star
                                                       : Icons.star_border,
                                                   color: Colors.yellow[800],
@@ -370,6 +370,9 @@ class _ViewBiddersPageState extends State<ViewBiddersPage> {
                                                     setState(() {
                                                       bidData['orderReceived'] = true;
                                                     });
+
+                                                    // Store transaction in history
+                                                    await _storeTransactionInHistory(bidData, userData);
                                                   }
                                                 },
                                           child: Text(
@@ -561,7 +564,8 @@ class _ViewBiddersPageState extends State<ViewBiddersPage> {
       var buyerData = buyerDoc.data() as Map<String, dynamic>;
 
       double totalRatings = (buyerData['totalRatings'] ?? 0).toDouble();
-      double newRating = ((buyerData['rating'] ?? 0) * totalRatings + rating) / (totalRatings + 1);
+      double existingRating = (buyerData['rating'] ?? 0).toDouble();
+      double newRating = ((existingRating * totalRatings) + rating) / (totalRatings + 1);
 
       await FirebaseFirestore.instance
           .collection('users')
@@ -597,6 +601,30 @@ class _ViewBiddersPageState extends State<ViewBiddersPage> {
       });
     } catch (e) {
       print('Error updating bid as delivered: $e');
+    }
+  }
+
+  Future<void> _storeTransactionInHistory(Map<String, dynamic> bidData, Map<String, dynamic> userData) async {
+    try {
+      final productDoc = await FirebaseFirestore.instance
+          .collection('products')
+          .doc(widget.productId)
+          .get();
+
+      final productData = productDoc.data() as Map<String, dynamic>;
+
+      await FirebaseFirestore.instance.collection('sales_transaction_history').add({
+        'productId': widget.productId,
+        'buyerId': bidData['userId'],
+        'productName': productData['productName'],
+        'amount': bidData['amount'],
+        'firstName': userData['firstName'],
+        'lastName': userData['lastName'],
+        'availableKilos': productData['availableKilos'],
+        'timestamp': Timestamp.now(),
+      });
+    } catch (e) {
+      print('Error storing transaction in history: $e');
     }
   }
 }

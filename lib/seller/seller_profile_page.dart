@@ -1,13 +1,14 @@
 // ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, prefer_const_constructors, prefer_const_literals_to_create_immutables, sort_child_properties_last, unnecessary_to_list_in_spreads
 
 import 'package:aepal/buyer/buyer_page.dart';
+import 'package:aepal/seller/sales_transaction_history_page.dart';
 import 'package:aepal/seller/seller_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'seller_edit_details_page.dart';
-import 'seller_comments_page.dart'; // Import the SellerCommentsPage
+import 'seller_comments_page.dart'; 
 
 class SellerProfilePage extends StatefulWidget {
   @override
@@ -20,7 +21,6 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
   User? _currentUser;
   Map<String, dynamic>? _userData;
   List<Map<String, dynamic>> _userPosts = [];
-  List<String> _userImages = [];
   List<Map<String, dynamic>> _farmLogs = [];
 
   @override
@@ -29,7 +29,6 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
     _getCurrentUser();
     _fetchUserData();
     _fetchUserPosts();
-    _fetchUserImages();
     _fetchFarmLogs();
   }
 
@@ -65,20 +64,6 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
     }
   }
 
-  Future<void> _fetchUserImages() async {
-    if (_currentUser != null) {
-      QuerySnapshot productsSnapshot = await FirebaseFirestore.instance
-          .collection('products')
-          .where('userId', isEqualTo: _currentUser!.uid)
-          .get();
-      setState(() {
-        _userImages = productsSnapshot.docs
-            .map((doc) => doc['imageUrl'] as String)
-            .toList();
-      });
-    }
-  }
-
   Future<void> _fetchFarmLogs() async {
     if (_currentUser != null) {
       QuerySnapshot logsSnapshot = await FirebaseFirestore.instance
@@ -103,12 +88,11 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
     await Future.wait([
       _fetchUserData(),
       _fetchUserPosts(),
-      _fetchUserImages(),
       _fetchFarmLogs(),
     ]);
   }
 
-  void _addFarmLog(String activity, String description) async {
+   void _addFarmLog(String activity, String description) async {
     if (_currentUser != null) {
       DocumentReference newLog = await FirebaseFirestore.instance
           .collection('farmLogs')
@@ -162,6 +146,12 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
   void _onButtonTapped(int index) {
     setState(() {
       _selectedButtonIndex = index;
+      if (index == 2) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => SalesTransactionHistoryPage()),
+        );
+      }
     });
   }
 
@@ -257,12 +247,12 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                     Stack(
                       children: [
                         Container(
-                          height: 220, // Increased height to accommodate button placement
+                          height: 220,
                           color: Colors.green,
                         ),
                         Positioned(
-                          top: 16, // Adjusted top position
-                          left: -23, // Adjusted left position
+                          top: 16,
+                          left: -23, 
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: TextButton(
@@ -401,7 +391,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                             children: [
                               _buildSelectableButton('Posts', 0, Icons.post_add),
                               _buildSelectableButton('FarmLog', 1, Icons.book),
-                              _buildSelectableButton('Images', 2, Icons.image),
+                              _buildSelectableButton('History', 2, Icons.history),
                             ],
                           ),
                           Divider(thickness: 2), // Add a long line below the buttons
@@ -554,33 +544,8 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                                     ),
                                   ),
                                 ] else if (_selectedButtonIndex == 2) ...[
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 16.0, top: 16.0),
-                                    child: Text(
-                                      'Images',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(height: 10), // Add space between the title and the images
-                                  GridView.builder(
-                                    shrinkWrap: true,
-                                    physics: NeverScrollableScrollPhysics(),
-                                    gridDelegate:
-                                        SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      crossAxisSpacing: 10,
-                                      mainAxisSpacing: 10,
-                                    ),
-                                    itemCount: _userImages.length,
-                                    itemBuilder: (context, index) {
-                                      return Image.network(
-                                        _userImages[index],
-                                        fit: BoxFit.cover,
-                                      );
-                                    },
+                                  Center(
+                                    child: CircularProgressIndicator(),
                                   ),
                                 ],
                               ],

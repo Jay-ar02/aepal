@@ -35,9 +35,9 @@ class SellerUserProfilePage extends StatelessWidget {
           }
 
           final userData = snapshot.data!;
-          final double rating = (userData['rating'] ?? 0).toDouble();
-          final int totalRatings = userData['totalRatings'] ?? 0;
-          final String averageRating = totalRatings > 0 ? (rating / totalRatings).toStringAsFixed(1) : '0.0';
+          final double rating = userData['rating']?.toDouble() ?? 0.0;
+          final int totalRatings = userData['totalRatings']?.toInt() ?? 0;
+          final double averageRating = totalRatings > 0 ? rating : 0.0;
 
           return SingleChildScrollView(
             child: Column(
@@ -85,14 +85,14 @@ class SellerUserProfilePage extends StatelessWidget {
                                   Row(
                                     children: List.generate(5, (index) {
                                       return Icon(
-                                        index < rating ? Icons.star : Icons.star_border,
+                                        index < averageRating ? Icons.star : Icons.star_border,
                                         color: Colors.yellow[600],
                                       );
                                     }),
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    averageRating,
+                                    averageRating.toStringAsFixed(1),
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 18,
