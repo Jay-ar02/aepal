@@ -22,10 +22,9 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _minAmountController = TextEditingController();
   int? _timeDurationHours;
   bool _isTimerEnabled = true;
-  String _productStatus = 'BIDDING SOON';
   List<File> _images = []; 
   final ImagePicker _picker = ImagePicker();
-  String _addressText = "Street, Barangay, Municipality";
+  String _addressText = "Enter Address";
 
   DateTime? _selectedScheduleDate; // New field for scheduling
 
@@ -83,7 +82,6 @@ class _AddProductPageState extends State<AddProductPage> {
           'availableKilos': availableKilos,
           'minAmount': minAmount,
           'timeDuration': endTime?.toIso8601String(),
-          'status': _productStatus,
           'imageUrls': imageUrls,
           'scheduledPostDate': _selectedScheduleDate?.toIso8601String(), // Schedule field
         });
@@ -151,7 +149,7 @@ class _AddProductPageState extends State<AddProductPage> {
           final data = document.data();
           if (data != null) {
             setState(() {
-              _addressText = "${data['street']}, ${data['barangay']}, ${data['municipality']}";
+              _addressText = data['address'] ?? 'Unknown Address';
             });
           }
         }
@@ -465,33 +463,6 @@ class _AddProductPageState extends State<AddProductPage> {
                   ),
                 ),
               ),
-            ),
-            SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              style: TextStyle(color: Colors.black),
-              decoration: InputDecoration(
-                labelText: 'Product Status',
-                labelStyle: TextStyle(color: Colors.black),
-                border: OutlineInputBorder(),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black),
-                ),
-              ),
-              value: _productStatus,
-              items: ['BIDDING SOON', 'OPEN FOR BIDDING']
-                  .map((status) => DropdownMenuItem(
-                        value: status,
-                        child: Text(status),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _productStatus = value!;
-                });
-              },
             ),
             SizedBox(height: 24),
             SizedBox(

@@ -341,7 +341,7 @@ class _SellerPageState extends State<SellerPage> {
                                     productId: productId,
                                     sellerName: sellerDetails['name']!,
                                     profileImageUrl: sellerDetails['profileImageUrl']!,
-                                    imageUrls: List<String>.from(product['imageUrls']), 
+                                    imageUrls: List<String>.from(product['imageUrls']),
                                     title: product['productName'],
                                     location: product['address'],
                                     availableKgs: product['availableKilos'],
@@ -349,7 +349,6 @@ class _SellerPageState extends State<SellerPage> {
                                     endTime: product['timeDuration'] != null
                                         ? DateTime.parse(product['timeDuration'])
                                         : null,
-                                    productStatus: product['status'],
                                     scheduledDate: scheduledDate, 
                                     onPressed: () {
                                       if (!isScheduled) {
@@ -419,13 +418,12 @@ class ProductCard extends StatelessWidget {
   final String productId;
   final String sellerName;
   final String profileImageUrl;
-  final List<String> imageUrls; 
+  final List<String> imageUrls;
   final String title;
   final String location;
   final int availableKgs;
   final double minAmount;
   final DateTime? endTime;
-  final String productStatus;
   final DateTime? scheduledDate; 
   final VoidCallback onPressed;
   final VoidCallback onLongPress;
@@ -440,7 +438,6 @@ class ProductCard extends StatelessWidget {
     required this.availableKgs,
     required this.minAmount,
     this.endTime,
-    required this.productStatus,
     this.scheduledDate,
     required this.onPressed,
     required this.onLongPress,

@@ -26,7 +26,6 @@ class _EditProductPageState extends State<EditProductPage> {
   bool _isTimerEnabled = true;
   File? _image;
   final ImagePicker _picker = ImagePicker();
-  String _productStatus = 'BIDDING SOON';
 
   @override
   void initState() {
@@ -36,15 +35,12 @@ class _EditProductPageState extends State<EditProductPage> {
     _availableKilosController = TextEditingController(text: widget.productData['availableKilos']?.toString() ?? '0');
     _minAmountController = TextEditingController(text: widget.productData['minAmount']?.toString() ?? '0');
 
-    // If timeDuration exists, parse it; otherwise, set timer to disabled
     if (widget.productData['timeDuration'] != null) {
       _timeDuration = DateTime.parse(widget.productData['timeDuration']);
       _isTimerEnabled = true;
     } else {
       _isTimerEnabled = false;
     }
-
-    _productStatus = widget.productData['status'] ?? 'BIDDING SOON';
   }
 
   @override
@@ -87,7 +83,6 @@ class _EditProductPageState extends State<EditProductPage> {
         imageUrl = widget.productData['imageUrl'];
       }
 
-      // Store timeDuration only if the timer is enabled
       String? timeDurationString;
       if (_isTimerEnabled && _timeDuration != null) {
         timeDurationString = _timeDuration!.toIso8601String();
@@ -99,7 +94,6 @@ class _EditProductPageState extends State<EditProductPage> {
         'availableKilos': int.parse(_availableKilosController.text),
         'minAmount': double.parse(_minAmountController.text),
         'timeDuration': timeDurationString,
-        'status': _productStatus,
         'imageUrl': imageUrl ?? '',
       });
 
@@ -375,33 +369,6 @@ class _EditProductPageState extends State<EditProductPage> {
                 ),
               ),
             ],
-          ),
-          SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _productStatus,
-            style: TextStyle(color: Colors.black),
-            decoration: InputDecoration(
-              labelText: 'Product Status',
-              labelStyle: TextStyle(color: Colors.black),
-              border: OutlineInputBorder(),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.black),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.black),
-              ),
-            ),
-            items: ['BIDDING SOON', 'OPEN FOR BIDDING']
-                .map((status) => DropdownMenuItem(
-                      value: status,
-                      child: Text(status),
-                    ))
-                .toList(),
-            onChanged: (value) {
-              setState(() {
-                _productStatus = value!;
-              });
-            },
           ),
           SizedBox(height: 24),
           SizedBox(

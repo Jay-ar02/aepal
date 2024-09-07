@@ -8,8 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'buyer_profile_page.dart';
 import 'buyer_search_page.dart';
-import 'package:aepal/seller/view_bidders_page.dart';
-import '../seller/seller_user_profile_page.dart'; 
+import 'view_map_page.dart';
+import '../seller/view_bidders_page.dart';
+import '../seller/seller_user_profile_page.dart';
 
 class BuyerPage extends StatefulWidget {
   final bool showSuccessNotification;
@@ -100,7 +101,7 @@ class _BuyerPageState extends State<BuyerPage> {
   }
 
   Future<Map<String, dynamic>> _fetchAddressDetails(String userId) async {
-    if (userId.isEmpty) return {'street': '', 'barangay': '', 'municipality': '', 'imageUrl': '', 'userId': ''};
+    if (userId.isEmpty) return {'address': '', 'latitude': 0.0, 'longitude': 0.0};
 
     try {
       DocumentSnapshot addressDoc =
@@ -111,7 +112,7 @@ class _BuyerPageState extends State<BuyerPage> {
     } catch (e) {
       print("Error fetching address data: $e");
     }
-    return {'street': '', 'barangay': '', 'municipality': '', 'imageUrl': '', 'userId': ''};
+    return {'address': '', 'latitude': 0.0, 'longitude': 0.0};
   }
 
   void _onItemTapped(int index) async {
@@ -180,6 +181,121 @@ class _BuyerPageState extends State<BuyerPage> {
         });
       }
     }
+  }
+
+  void _showAddressModal(BuildContext context, String userId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return FutureBuilder<Map<String, dynamic>>(
+          future: _fetchAddressDetails(userId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                height: 200,
+                child: Center(child: CircularProgressIndicator(color: Colors.green)),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Container(
+                height: 200,
+                child: Center(child: Text('Error: ${snapshot.error}')),
+              );
+            }
+
+            if (!snapshot.hasData || snapshot.data!['address'] == '') {
+              return Container(
+                height: 200,
+                child: Center(child: Text('No address found.')),
+              );
+            }
+
+            var addressDetails = snapshot.data!;
+            double latitude = addressDetails['latitude'];
+            double longitude = addressDetails['longitude'];
+            String address = addressDetails['address'];
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "FARMER'S FARM LOCATION",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.location_on, color: Colors.blue, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Wrap(
+                              children: [
+                                Text(
+                                  address,
+                                  style: TextStyle(fontSize: 16, color: Colors.black),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ViewMapPage(
+                                  centerLatitude: latitude,
+                                  centerLongitude: longitude,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('View Map', style: TextStyle(color: Colors.white)),
+                              Icon(Icons.arrow_right, color: Colors.white),
+                            ],
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -304,7 +420,7 @@ class _BuyerPageState extends State<BuyerPage> {
                       var product = products[index];
                       var productId = product.id;
                       var userId = product['userId'] ?? '';
-                      var imageUrls = List<String>.from(product['imageUrls']); 
+                      var imageUrls = List<String>.from(product['imageUrls']);
 
                       return FutureBuilder<Map<String, String>>(
                         future: _fetchSellerDetails(userId),
@@ -326,7 +442,6 @@ class _BuyerPageState extends State<BuyerPage> {
                                 : null,
                             productId: productId,
                             ownerId: userId,
-                            productStatus: product['status'],
                             onAddressTap: () {
                               _showAddressModal(context, userId);
                             },
@@ -376,111 +491,19 @@ class _BuyerPageState extends State<BuyerPage> {
       ),
     );
   }
-
-  void _showAddressModal(BuildContext context, String userId) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return FutureBuilder<Map<String, dynamic>>(
-          future: _fetchAddressDetails(userId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Container(
-                height: 200,
-                child: Center(child: CircularProgressIndicator(color: Colors.green)),
-              );
-            }
-
-            if (snapshot.hasError) {
-              return Container(
-                height: 200,
-                child: Center(child: Text('Error: ${snapshot.error}')),
-              );
-            }
-
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return Container(
-                height: 200,
-                child: Center(child: Text('No address found.')),
-              );
-            }
-
-            var addressDetails = snapshot.data!;
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: SingleChildScrollView(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "FARMER'S FARM LOCATION",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                      ),
-                      SizedBox(height: 10),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.location_on, color: Colors.blue, size: 20),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Wrap(
-                              children: [
-                                Text(
-                                  '${addressDetails['street']}, ${addressDetails['barangay']}, ${addressDetails['municipality']}, Albay, Philippines',
-                                  style: TextStyle(fontSize: 16, color: Colors.black),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      if (addressDetails['imageUrl'] != null)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.network(
-                            addressDetails['imageUrl'],
-                            height: 150,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 }
 
 class ProductCard extends StatefulWidget {
   final String sellerName;
   final String profileImageUrl;
-  final List<String> imageUrls; 
+  final List<String> imageUrls;
   final String title;
   final String location;
   final int availableKgs;
   final double minAmount;
-  final DateTime? endTime; 
+  final DateTime? endTime;
   final String productId;
   final String ownerId;
-  final String productStatus;
   final VoidCallback onAddressTap;
 
   const ProductCard({
@@ -494,7 +517,6 @@ class ProductCard extends StatefulWidget {
     this.endTime,
     required this.productId,
     required this.ownerId,
-    required this.productStatus,
     required this.onAddressTap,
   });
 
@@ -583,22 +605,6 @@ class _ProductCardState extends State<ProductCard> {
                       ),
                     ),
                   ),
-                  if (widget.productStatus == 'BIDDING SOON')
-                    PopupMenuButton<String>(
-                      onSelected: (value) {
-                        if (value == 'save') {
-                          _showSaveDialog(context);
-                        }
-                      },
-                      itemBuilder: (BuildContext context) {
-                        return [
-                          PopupMenuItem<String>(
-                            value: 'save',
-                            child: Text('Save'),
-                          ),
-                        ];
-                      },
-                    ),
                 ],
               ),
             ),
@@ -607,7 +613,7 @@ class _ProductCardState extends State<ProductCard> {
               child: Stack(
                 children: [
                   Image.network(
-                    widget.imageUrls.first, 
+                    widget.imageUrls.first,
                     height: 110,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -739,24 +745,6 @@ class _ProductCardState extends State<ProductCard> {
                                   ),
                                 ),
                               );
-                            } else if (widget.productStatus == 'BIDDING SOON') {
-                              return Container(
-                                width: double.infinity,
-                                height: 30,
-                                child: ElevatedButton(
-                                  onPressed: null,
-                                  child: Text(
-                                    'BIDDING SOON',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.grey,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.zero,
-                                    ),
-                                  ),
-                                ),
-                              );
                             } else {
                               return FutureBuilder<bool>(
                                 future: _hasUserPlacedBid(widget.productId),
@@ -877,42 +865,11 @@ class _ProductCardState extends State<ProductCard> {
     return false;
   }
 
-  void _showSaveDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Save Product'),
-          content: Text('Do you want to save this product for later?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Fluttertoast.showToast(
-                  msg: 'Product saved!',
-                  toastLength: Toast.LENGTH_SHORT,
-                  gravity: ToastGravity.BOTTOM,
-                );
-              },
-              child: Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void _navigateToSellerProfile(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SellerUserProfilePage(userId: widget.ownerId), // Pass the ownerId to the profile page
+        builder: (context) => SellerUserProfilePage(userId: widget.ownerId),
       ),
     );
   }
@@ -931,7 +888,7 @@ class ImageGalleryModal extends StatelessWidget {
       ),
       child: Container(
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.6, 
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -942,7 +899,7 @@ class ImageGalleryModal extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white,),
+                    border: Border.all(color: Colors.white),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(10),
@@ -979,10 +936,10 @@ void _showOfferBidModal(BuildContext context, String productId, double minAmount
             child: SingleChildScrollView(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white, 
+                  color: Colors.white,
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(20), 
-                    topRight: Radius.circular(20), 
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
                   ),
                 ),
                 padding: const EdgeInsets.all(20.0),
