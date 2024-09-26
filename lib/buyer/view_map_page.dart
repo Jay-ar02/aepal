@@ -21,113 +21,111 @@ class _ViewMapPageState extends State<ViewMapPage> {
   final TextEditingController _locationController = TextEditingController();
   LatLng? _inputLocation;
   String? _distanceAndTimeEstimate;
-  List<Marker> _markers = [];
   Marker? _selectedMarker;
+  String? _address; // To store the fetched address
 
   @override
   void initState() {
     super.initState();
-    _fetchMarkers();
+    _fetchAddress(); // Fetch the specific address from Firestore
   }
 
-  Future<void> _fetchMarkers() async {
-    List<Marker> markers = [];
-    QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('addresses').get();
+  // Function to fetch the address from Firestore based on latitude and longitude
+  Future<void> _fetchAddress() async {
+    try {
+      // Query Firestore for the address using latitude and longitude
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('addresses')
+          .where('latitude', isEqualTo: widget.centerLatitude)
+          .where('longitude', isEqualTo: widget.centerLongitude)
+          .get();
 
-    for (var doc in querySnapshot.docs) {
-      var data = doc.data() as Map<String, dynamic>;
-      double latitude = data['latitude'];
-      double longitude = data['longitude'];
-      String address = data['address'];
+      if (querySnapshot.docs.isNotEmpty) {
+        var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
+        _address = data['address']; // Store the address
 
-      markers.add(
-        Marker(
-          point: LatLng(latitude, longitude),
-          width: 80.0,
-          height: 80.0,
-          builder: (ctx) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.location_pin,
-                color: Colors.red,
-                size: 40.0,
-              ),
-              Flexible(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 3,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text(
-                    address,
-                    style: TextStyle(fontSize: 12, color: Colors.black),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
-                  ),
+        _showSelectedLocation(); // Display the marker once the address is fetched
+      } else {
+        print('Address not found for the given coordinates.');
+      }
+    } catch (e) {
+      print('Error fetching address from Firestore: $e');
+    }
+  }
+
+  // Function to set the marker for the selected location
+  void _showSelectedLocation() {
+    LatLng selectedLocation = LatLng(widget.centerLatitude!, widget.centerLongitude!);
+    _selectedMarker = Marker(
+      point: selectedLocation,
+      width: 80.0,
+      height: 80.0,
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.location_pin,
+            color: Colors.red,
+            size: 40.0,
+          ),
+          if (_address != null)
+            Flexible(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 3,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  _address!, // Use the fetched address
+                  style: TextStyle(fontSize: 12, color: Colors.black),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
               ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    setState(() {
-      _markers = markers;
-    });
+            ),
+        ],
+      ),
+    );
+    setState(() {}); // Update the UI
   }
 
   Future<void> _calculateDistanceAndTime(String location) async {
+    // Optional if you want to keep the distance calculation logic
     try {
       List<Location> locations = await locationFromAddress(location);
       if (locations.isNotEmpty) {
         _inputLocation = LatLng(locations[0].latitude, locations[0].longitude);
 
-        // Find the closest marker to the searched location
-        Marker? closestMarker;
-        double closestDistance = double.infinity;
+        // Calculate distance from the input location to the selected marker location
         final distanceCalculator = Distance();
+        final distance = distanceCalculator.as(
+          LengthUnit.Kilometer,
+          _inputLocation!,
+          LatLng(widget.centerLatitude!, widget.centerLongitude!),
+        );
 
-        for (var marker in _markers) {
-          final distance = distanceCalculator.as(
-            LengthUnit.Kilometer,
-            _inputLocation!,
-            marker.point,
-          );
-          if (distance < closestDistance) {
-            closestDistance = distance;
-            closestMarker = marker;
-          }
+        final timeInHours = distance / 60; 
+        int hours = timeInHours.floor();
+        int minutes = ((timeInHours - hours) * 60).round();
+
+        String timeEstimate = '';
+        if (hours > 0) {
+          timeEstimate += '${hours}hr ';
         }
+        timeEstimate += '${minutes}min';
 
-        if (closestMarker != null) {
-          _selectedMarker = closestMarker;
+        _distanceAndTimeEstimate =
+            'Distance: ${distance.toStringAsFixed(2)} km, Estimated Time: $timeEstimate';
 
-          // Update the time calculation to assume 60 km/h speed
-          final timeInHours = closestDistance / 60; // 60 km/h speed
-          int hours = timeInHours.floor();
-          int minutes = ((timeInHours - hours) * 60).round();
-
-          String timeEstimate = '';
-          if (hours > 0) {
-            timeEstimate += '${hours}hr ';
-          }
-          timeEstimate += '${minutes}min';
-
-          _distanceAndTimeEstimate =
-              'Distance: ${closestDistance.toStringAsFixed(2)} km, Estimated Time: $timeEstimate';
-
-          setState(() {});
-        }
+        setState(() {});
       }
     } catch (e) {
       print('Error fetching location: $e');
@@ -139,6 +137,10 @@ class _ViewMapPageState extends State<ViewMapPage> {
 
   @override
   Widget build(BuildContext context) {
+    LatLng centerPoint = widget.centerLatitude != null && widget.centerLongitude != null
+        ? LatLng(widget.centerLatitude!, widget.centerLongitude!)
+        : LatLng(13.0827, 80.2707); // Default to Chennai if no center provided
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Map View', style: TextStyle(color: Colors.black)),
@@ -183,9 +185,7 @@ class _ViewMapPageState extends State<ViewMapPage> {
             child: FlutterMap(
               mapController: _mapController,
               options: MapOptions(
-                center: widget.centerLatitude != null && widget.centerLongitude != null
-                    ? LatLng(widget.centerLatitude!, widget.centerLongitude!)
-                    : LatLng(13.0827, 80.2707),
+                center: centerPoint,
                 zoom: 15.0,
               ),
               children: [
@@ -193,7 +193,14 @@ class _ViewMapPageState extends State<ViewMapPage> {
                   urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                   subdomains: ['a', 'b', 'c'],
                 ),
-                if (_markers.isNotEmpty) MarkerLayer(markers: _markers),
+                // Show the marker for the selected location
+                if (_selectedMarker != null)
+                  MarkerLayer(
+                    markers: [
+                      _selectedMarker!,
+                    ],
+                  ),
+                // Optionally, display the searched location as a blue marker
                 if (_inputLocation != null)
                   MarkerLayer(
                     markers: [
@@ -207,12 +214,6 @@ class _ViewMapPageState extends State<ViewMapPage> {
                           size: 40.0,
                         ),
                       ),
-                    ],
-                  ),
-                if (_selectedMarker != null)
-                  MarkerLayer(
-                    markers: [
-                      _selectedMarker!,
                     ],
                   ),
               ],

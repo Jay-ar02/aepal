@@ -184,119 +184,120 @@ class _BuyerPageState extends State<BuyerPage> {
   }
 
   void _showAddressModal(BuildContext context, String userId) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return FutureBuilder<Map<String, dynamic>>(
-          future: _fetchAddressDetails(userId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Container(
-                height: 200,
-                child: Center(child: CircularProgressIndicator(color: Colors.green)),
-              );
-            }
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (BuildContext context) {
+      return FutureBuilder<Map<String, dynamic>>(
+        future: _fetchAddressDetails(userId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Container(
+              height: 200,
+              child: Center(child: CircularProgressIndicator(color: Colors.green)),
+            );
+          }
 
-            if (snapshot.hasError) {
-              return Container(
-                height: 200,
-                child: Center(child: Text('Error: ${snapshot.error}')),
-              );
-            }
+          if (snapshot.hasError) {
+            return Container(
+              height: 200,
+              child: Center(child: Text('Error: ${snapshot.error}')),
+            );
+          }
 
-            if (!snapshot.hasData || snapshot.data!['address'] == '') {
-              return Container(
-                height: 200,
-                child: Center(child: Text('No address found.')),
-              );
-            }
+          if (!snapshot.hasData || snapshot.data!['address'] == '') {
+            return Container(
+              height: 200,
+              child: Center(child: Text('No address found.')),
+            );
+          }
 
-            var addressDetails = snapshot.data!;
-            double latitude = addressDetails['latitude'];
-            double longitude = addressDetails['longitude'];
-            String address = addressDetails['address'];
+          var addressDetails = snapshot.data!;
+          double latitude = addressDetails['latitude'];
+          double longitude = addressDetails['longitude'];
+          String address = addressDetails['address'];
 
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: SingleChildScrollView(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "FARMER'S FARM LOCATION",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                      ),
-                      SizedBox(height: 10),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.location_on, color: Colors.blue, size: 20),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Wrap(
-                              children: [
-                                Text(
-                                  address,
-                                  style: TextStyle(fontSize: 16, color: Colors.black),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ViewMapPage(
-                                  centerLatitude: latitude,
-                                  centerLongitude: longitude,
-                                ),
-                              ),
-                            );
-                          },
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text('View Map', style: TextStyle(color: Colors.white)),
-                              Icon(Icons.arrow_right, color: Colors.white),
-                            ],
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          ),
-                        ),
-                      ),
-                    ],
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: SingleChildScrollView(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
                   ),
                 ),
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "FARMER'S FARM LOCATION",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
+                    SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.location_on, color: Colors.blue, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Wrap(
+                            children: [
+                              Text(
+                                address,
+                                style: TextStyle(fontSize: 16, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Pass the latitude and longitude to the map page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ViewMapPage(
+                                centerLatitude: latitude,
+                                centerLongitude: longitude,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('View Map', style: TextStyle(color: Colors.white)),
+                            Icon(Icons.arrow_right, color: Colors.white),
+                          ],
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {

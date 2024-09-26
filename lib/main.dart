@@ -8,7 +8,7 @@ import 'signup_page.dart';
 import 'seller/seller_page.dart';
 import 'seller/seller_notification_page.dart';
 import 'buyer/buyer_notification_page.dart';
-import 'seller/view_bidders_page.dart'; // Import ViewBiddersPage
+import 'seller/view_bidders_page.dart'; 
 import 'buyer/buyer_page.dart';
 import 'buyer/buyer_profile_page.dart';
 import 'seller/seller_profile_page.dart';
@@ -17,7 +17,7 @@ import 'seller/add_product_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // Ensure Firebase is initialized
+  await Firebase.initializeApp(); 
   runApp(const MyApp());
 }
 
@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/', // Set initial route to '/'
+      initialRoute: '/', 
       routes: {
         '/': (context) => SplashPage(),
         '/buyerProfile': (context) => BuyerProfilePage(),
